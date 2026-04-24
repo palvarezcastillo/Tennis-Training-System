@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mira Tennis Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #0a0603; font-family: 'Outfit', sans-serif; color: #f0dac8; overflow: hidden; }
+  input, button, textarea { font-family: 'Outfit', sans-serif; outline: none; }
+  input { color-scheme: dark; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2a1208; border-radius: 4px; }
+  @keyframes pulse { from { opacity: 0.3; transform: scale(0.8); } to { opacity: 1; transform: scale(1.1); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+  .screen-enter { animation: fadeIn 0.25s ease forwards; }
+
+  /* ── MOBILE (default) ── */
+  #app-shell {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #0d0805;
+    position: relative;
+    overflow: hidden;
+  }
+  #sidebar { display: none; }
+  #topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px 4px; flex-shrink: 0; }
+  #main-content { flex: 1; overflow-y: auto; }
+  #bottom-nav { display: flex; background: #120804; border-top: 1px solid #2a1208; padding: 8px 0 20px; flex-shrink: 0; }
+  #bottom-nav button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; padding: 6px 2px; }
+
+  /* ── DESKTOP ── */
+  @media (min-width: 768px) {
+    html, body { overflow: hidden; }
+    #app-shell {
+      flex-direction: row;
+      height: 100vh;
+    }
+    #sidebar {
+      display: flex;
+      flex-direction: column;
+      width: 220px;
+      min-width: 220px;
+      background: #080402;
+      border-right: 1px solid #1a0c05;
+      padding: 28px 0 24px;
+      overflow: hidden;
+    }
+    #topbar { display: none; }
+    #main-content {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    #main-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px 32px;
+      max-width: 900px;
+    }
+    #right-panel {
+      width: 300px;
+      min-width: 300px;
+      overflow-y: auto;
+      padding: 28px 20px 28px;
+      border-left: 1px solid #1a0c05;
+      background: #080402;
+      display: block;
+    }
+    #bottom-nav { display: none; }
+  }
+  @media (min-width: 1200px) {
+    #sidebar { width: 240px; min-width: 240px; }
+    #right-panel { width: 320px; min-width: 320px; }
+  }
+</style>
+
+<template id="__bundler_thumbnail" data-bg-color="#0d0805">
+  <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="400" height="300" fill="#0d0805"/>
+    <!-- Clay grid lines -->
+    <g opacity="0.07">
+      <line x1="0" y1="60" x2="400" y2="60" stroke="#d4501a" stroke-width="1"/>
+      <line x1="0" y1="120" x2="400" y2="120" stroke="#d4501a" stroke-width="1"/>
+      <line x1="0" y1="180" x2="400" y2="180" stroke="#d4501a" stroke-width="1"/>
+      <line x1="0" y1="240" x2="400" y2="240" stroke="#d4501a" stroke-width="1"/>
+      <line x1="80" y1="0" x2="80" y2="300" stroke="#d4501a" stroke-width="1"/>
+      <line x1="160" y1="0" x2="160" y2="300" stroke="#d4501a" stroke-width="1"/>
+      <line x1="240" y1="0" x2="240" y2="300" stroke="#d4501a" stroke-width="1"/>
+      <line x1="320" y1="0" x2="320" y2="300" stroke="#d4501a" stroke-width="1"/>
+    </g>
+    <!-- Tennis player silhouette -->
+    <circle cx="200" cy="100" r="22" fill="#d4501a"/>
+    <path d="M200 122 C192 138 188 158 186 175 L214 175 C212 158 208 138 200 122Z" fill="#d4501a" opacity="0.9"/>
+    <path d="M208 132 L228 118 L238 115" stroke="#d4501a" stroke-width="8" stroke-linecap="round"/>
+    <ellipse cx="242" cy="110" rx="12" ry="15" stroke="#d4501a" stroke-width="4" fill="none"/>
+    <path d="M186 132 L166 148" stroke="#d4501a" stroke-width="7" stroke-linecap="round"/>
+    <path d="M186 175 L178 200 L170 220" stroke="#d4501a" stroke-width="9" stroke-linecap="round"/>
+    <path d="M214 175 L220 200 L228 220" stroke="#d4501a" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="162" cy="155" r="10" fill="#c8e040"/>
+    <!-- MIRA TENNIS text -->
+    <text x="200" y="258" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="28" fill="#ffffff" letter-spacing="-0.5">MIRA</text>
+    <text x="200" y="280" text-anchor="middle" font-family="sans-serif" font-weight="300" font-size="14" fill="#d4501a" letter-spacing="4">TENNIS TRAINING</text>
+  </svg>
+</template>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="components/shared.jsx"></script>
+<script type="text/babel" src="components/screens.jsx"></script>
+
+<script type="text/babel">
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const QUOTES = [
+  { text: "El éxito es la suma de pequeños esfuerzos repetidos día tras día.", author: "R. Collier" },
+  { text: "El campeón no es el que nunca cae, sino el que se levanta cada vez.", author: "Vince Lombardi" },
+  { text: "Entrená como si nadie te viera. Competí como si todos te miraran.", author: "Anónimo" },
+  { text: "La arcilla no miente: cada sesión deja su huella.", author: "Rafael Nadal" },
+  { text: "Tu cuerpo puede hacer casi cualquier cosa. Es tu mente la que necesitás convencer.", author: "Anónimo" },
+  { text: "No cuentes los días, hacé que los días cuenten.", author: "Muhammad Ali" },
+];
+
+const NAV_ITEMS = [
+  { id: 'dashboard', icon: 'home',     label: 'Inicio'   },
+  { id: 'calendar',  icon: 'calendar', label: 'Agenda'   },
+  { id: 'training',  icon: 'dumbbell', label: 'Entreno'  },
+  { id: 'food',      icon: 'utensils', label: 'Comidas'  },
+  { id: 'progress',  icon: 'chart',    label: 'Progreso' },
+  { id: 'ai',        icon: 'brain',    label: 'Coach IA' },
+];
+
+// ── SPLASH ────────────────────────────────────────────────────────────────────
+function SplashOverlay({ onEnter }) {
+  const [quote]   = React.useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+  const [visible, setVisible] = React.useState(false);
+  const [out,     setOut]     = React.useState(false);
+  React.useEffect(() => { setTimeout(() => setVisible(true), 150); }, []);
+  const handle = () => { setOut(true); setTimeout(onEnter, 550); };
+  return (
+    <div style={{
+      position:'fixed',inset:0,zIndex:200,
+      background:'linear-gradient(160deg,#0d0805 0%,#1a0c05 55%,#250e04 100%)',
+      display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+      padding:'32px 24px',
+      opacity: out ? 0 : 1, transition:'opacity 0.55s ease',
+    }}>
+      {/* Clay grid lines */}
+      <div style={{position:'absolute',inset:0,overflow:'hidden',opacity:0.05,pointerEvents:'none'}}>
+        {[...Array(14)].map((_,i) => <div key={i} style={{position:'absolute',top:0,bottom:0,left:`${i*7.2}%`,width:1,background:'#d4501a'}}/>)}
+        {[...Array(22)].map((_,i) => <div key={i} style={{position:'absolute',left:0,right:0,top:`${i*4.7}%`,height:1,background:'#d4501a'}}/>)}
+      </div>
+      <div style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(28px)',
+        transition:'all 0.7s ease',
+        textAlign:'center', maxWidth:380,
+      }}>
+        <div style={{position:'relative',display:'inline-block',marginBottom:10}}>
+          <TennisPlayer size={120} color="#d4501a"/>
+          <div style={{position:'absolute',bottom:0,left:'50%',transform:'translateX(-50%)',width:90,height:3,background:'linear-gradient(90deg,transparent,#d4501a,transparent)',borderRadius:2}}/>
+        </div>
+        <div style={{marginBottom:6}}>
+          <span style={{fontSize:32,fontWeight:900,color:'#fff',letterSpacing:'-0.5px'}}>MIRA</span>
+          <span style={{fontSize:32,fontWeight:300,color:'#d4501a',letterSpacing:3,marginLeft:10}}>TENNIS</span>
+        </div>
+        <div style={{fontSize:11,color:'#6a3a1a',letterSpacing:5,textTransform:'uppercase',marginBottom:44}}>Training System</div>
+        <div style={{background:'rgba(212,80,26,0.08)',border:'1px solid rgba(212,80,26,0.18)',borderRadius:18,padding:'22px 28px',marginBottom:44}}>
+          <div style={{fontSize:16,color:'#f0dac8',fontStyle:'italic',lineHeight:1.65,marginBottom:10,textWrap:'pretty'}}>"{quote.text}"</div>
+          <div style={{fontSize:12,color:'#7a4a2a'}}>— {quote.author}</div>
+        </div>
+        <button onClick={handle} style={{
+          background:'linear-gradient(135deg,#c84010,#e87a3c)',
+          border:'none',borderRadius:50,padding:'17px 56px',
+          color:'#fff',fontSize:15,fontWeight:700,letterSpacing:1.5,
+          cursor:'pointer',boxShadow:'0 10px 40px rgba(212,80,26,0.45)',
+          textTransform:'uppercase',
+        }}>Empezar →</button>
+      </div>
+    </div>
+  );
+}
+
+// ── SIDEBAR (desktop) ─────────────────────────────────────────────────────────
+function Sidebar({ screen, setScreen, accent }) {
+  return (
+    <div id="sidebar">
+      <div style={{padding:'0 20px 28px',borderBottom:'1px solid #1a0c05',marginBottom:20}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:4}}>
+          <TennisPlayer size={44} color={accent}/>
+          <div>
+            <div style={{fontSize:17,fontWeight:900,color:'#fff',lineHeight:1}}>MIRA</div>
+            <div style={{fontSize:11,fontWeight:300,color:accent,letterSpacing:2}}>TENNIS</div>
+          </div>
+        </div>
+        <div style={{fontSize:11,color:'#4a2810',marginTop:8,paddingLeft:2}}>Competitivo · Amateur</div>
+      </div>
+
+      <div style={{flex:1,display:'flex',flexDirection:'column',gap:4,padding:'0 12px'}}>
+        {NAV_ITEMS.map(item => {
+          const active = screen === item.id;
+          return (
+            <button key={item.id} onClick={() => setScreen(item.id)} style={{
+              display:'flex',alignItems:'center',gap:12,
+              padding:'11px 14px',borderRadius:12,border:'none',
+              background: active ? `rgba(212,80,26,0.15)` : 'transparent',
+              cursor:'pointer',textAlign:'left',
+              borderLeft: active ? `3px solid ${accent}` : '3px solid transparent',
+              transition:'all 0.15s',
+            }}>
+              <Icon name={item.icon} size={18} color={active ? accent : '#4a2810'}/>
+              <span style={{fontSize:14,fontWeight:active?700:400,color:active?'#fff':'#5a3018'}}>{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Bottom user card */}
+      <div style={{padding:'20px 16px 0',borderTop:'1px solid #1a0c05',marginTop:'auto'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'#120804',borderRadius:12}}>
+          <div style={{width:36,height:36,borderRadius:'50%',background:`rgba(212,80,26,0.2)`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <Icon name="target" size={18} color={accent}/>
+          </div>
+          <div>
+            <div style={{fontSize:13,fontWeight:700,color:'#fff'}}>Mira</div>
+            <div style={{fontSize:11,color:'#4a2810'}}>Ranking #12 · Club</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── RIGHT PANEL (desktop) ─────────────────────────────────────────────────────
+function RightPanel({ accent }) {
+  const metrics = [
+    { label:'Peso',    value:'81.7', unit:'kg',   icon:'target', color:'#e87a3c', v:81.7, max:90  },
+    { label:'Calorías',value:'1420', unit:'kcal', icon:'fire',   color:'#d4501a', v:1420, max:2800},
+    { label:'Sueño',   value:'7.5',  unit:'h',    icon:'moon',   color:'#a060d4', v:7.5,  max:9   },
+    { label:'Agua',    value:'2.1',  unit:'L',    icon:'drop',   color:'#40a0d4', v:2.1,  max:3   },
+  ];
+  return (
+    <div id="right-panel">
+      {/* Tournament banner */}
+      <div style={{background:'linear-gradient(135deg,#2a1208,#1e0e06)',border:'1px solid rgba(240,192,64,0.3)',borderRadius:16,padding:'16px',marginBottom:24}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+          <Icon name="trophy" size={18} color="#f0c040"/>
+          <div style={{fontSize:11,color:'#f0c040',textTransform:'uppercase',letterSpacing:1,fontWeight:700}}>Próximo Torneo</div>
+        </div>
+        <div style={{fontSize:15,fontWeight:700,color:'#fff',marginBottom:2}}>Club Tenis Palermo</div>
+        <div style={{fontSize:12,color:'#a07030'}}>Sábado 25 Abr · Cat. A2 · Singles</div>
+        <div style={{marginTop:12,display:'flex',alignItems:'center',gap:8}}>
+          <div style={{fontSize:32,fontWeight:900,color:'#f0c040',lineHeight:1}}>1</div>
+          <div style={{fontSize:12,color:'#7a5020'}}>día restante</div>
+        </div>
+      </div>
+
+      {/* Metrics */}
+      <div style={{fontSize:11,color:'#5a3018',letterSpacing:2,textTransform:'uppercase',marginBottom:12}}>Métricas hoy</div>
+      <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:24}}>
+        {metrics.map(m => (
+          <div key={m.label} style={{display:'flex',alignItems:'center',gap:12,background:'#120804',borderRadius:12,padding:'12px 14px'}}>
+            <RingChart value={m.v} max={m.max} color={m.color} size={44} strokeWidth={4}>
+              <foreignObject x={6} y={6} width={32} height={32}>
+                <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <Icon name={m.icon} size={13} color={m.color}/>
+                </div>
+              </foreignObject>
+            </RingChart>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,color:'#8a5a3a'}}>{m.label}</div>
+              <MiniBar value={m.v} max={m.max} color={m.color}/>
+            </div>
+            <div style={{fontSize:16,fontWeight:800,color:'#fff'}}>{m.value}<span style={{fontSize:10,color:'#5a3018',marginLeft:1}}>{m.unit}</span></div>
+          </div>
+        ))}
+      </div>
+
+      {/* Week mini */}
+      <div style={{fontSize:11,color:'#5a3018',letterSpacing:2,textTransform:'uppercase',marginBottom:12}}>Semana</div>
+      <div style={{display:'flex',gap:6,background:'#120804',borderRadius:14,padding:14}}>
+        {[
+          {day:'L',type:'gym',done:true},{day:'M',type:'tennis',done:true},
+          {day:'X',type:'rest',done:true},{day:'J',type:'gym',done:true},
+          {day:'V',type:'tennis',done:false,today:true},{day:'S',type:'tournament',done:false},{day:'D',type:'rest',done:false}
+        ].map((d,i) => {
+          const clr = {gym:'#e87a3c',tennis:'#d4501a',rest:'#2a1208',tournament:'#f0c040'}[d.type];
+          return (
+            <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+              <div style={{width:'100%',height:32,background:d.done?clr:'#1a0c05',borderRadius:6,border:d.today?`2px solid ${clr}`:'2px solid transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                {d.done && <Icon name="check" size={10} color="#fff"/>}
+                {!d.done && d.today && <div style={{width:6,height:6,borderRadius:'50%',background:clr}}/>}
+              </div>
+              <div style={{fontSize:9,color:d.today?clr:'#3a1808'}}>{d.day}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── TOP BAR (mobile) ──────────────────────────────────────────────────────────
+function TopBar({ screen, accent }) {
+  const label = NAV_ITEMS.find(n => n.id === screen)?.label || 'Inicio';
+  return (
+    <div id="topbar">
+      <div>
+        <div style={{fontSize:18,fontWeight:800,color:'#fff'}}>{label}</div>
+        <div style={{fontSize:11,color:'#5a3018'}}>Vie 24 Abr · 9:41</div>
+      </div>
+      <TennisPlayer size={44} color={accent} opacity={0.85}/>
+    </div>
+  );
+}
+
+// ── BOTTOM NAV (mobile) ───────────────────────────────────────────────────────
+function BottomNav({ screen, setScreen, accent }) {
+  return (
+    <div id="bottom-nav">
+      {NAV_ITEMS.map(item => {
+        const active = screen === item.id;
+        return (
+          <button key={item.id} onClick={() => setScreen(item.id)}>
+            <div style={{position:'relative'}}>
+              {active && <div style={{position:'absolute',inset:-6,borderRadius:'50%',background:`${accent}18`}}/>}
+              <Icon name={item.icon} size={20} color={active ? accent : '#3a1808'}/>
+            </div>
+            <div style={{fontSize:9,fontWeight:active?700:400,color:active?accent:'#3a1808'}}>{item.label}</div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── TWEAKS PANEL ──────────────────────────────────────────────────────────────
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentColor": "#d4501a",
+  "bgColor": "#0d0805",
+  "showRightPanel": true
+}/*EDITMODE-END*/;
+
+function TweaksPanel({ tweaks, updateTweak, onClose, accent }) {
+  return (
+    <div style={{position:'fixed',bottom:24,right:24,background:'#1a0c05',border:'1px solid #3a1808',borderRadius:16,padding:20,width:260,zIndex:300,boxShadow:'0 20px 60px rgba(0,0,0,0.7)'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <div style={{fontSize:14,fontWeight:700,color:'#fff'}}>Tweaks</div>
+        <button onClick={onClose} style={{background:'none',border:'none',color:'#8a5a3a',cursor:'pointer',fontSize:20,lineHeight:1}}>×</button>
+      </div>
+      {[
+        {label:'Color principal', key:'accentColor', type:'color'},
+        {label:'Color de fondo',  key:'bgColor',     type:'color'},
+        {label:'Panel derecho',   key:'showRightPanel', type:'toggle'},
+      ].map(t => (
+        <div key={t.key} style={{marginBottom:14}}>
+          <div style={{fontSize:11,color:'#8a5a3a',marginBottom:6}}>{t.label}</div>
+          {t.type === 'color' && (
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <input type="color" value={tweaks[t.key]} onChange={e => updateTweak(t.key, e.target.value)} style={{width:36,height:28,border:'none',borderRadius:6,cursor:'pointer',background:'none'}}/>
+              <div style={{fontSize:12,color:'#f0dac8',fontFamily:'monospace'}}>{tweaks[t.key]}</div>
+            </div>
+          )}
+          {t.type === 'toggle' && (
+            <div onClick={() => updateTweak(t.key, !tweaks[t.key])} style={{width:44,height:24,borderRadius:12,background:tweaks[t.key]?accent:'#2a1808',cursor:'pointer',position:'relative',transition:'background 0.3s'}}>
+              <div style={{position:'absolute',top:3,left:tweaks[t.key]?23:3,width:18,height:18,borderRadius:'50%',background:'#fff',transition:'left 0.3s'}}/>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── APP ───────────────────────────────────────────────────────────────────────
+function App() {
+  const [showSplash,    setShowSplash]    = React.useState(true);
+  const [screen,        setScreen]        = React.useState('dashboard');
+  const [tweaks,        setTweaks]        = React.useState(TWEAK_DEFAULTS);
+  const [tweaksVisible, setTweaksVisible] = React.useState(false);
+
+  const accent = tweaks.accentColor;
+
+  // Tweaks protocol
+  React.useEffect(() => {
+    const handler = e => {
+      if (e.data?.type === '__activate_edit_mode')   setTweaksVisible(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksVisible(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const updateTweak = (key, val) => {
+    const next = { ...tweaks, [key]: val };
+    setTweaks(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: next }, '*');
+  };
+
+  const renderScreen = () => {
+    const props = { setScreen, wide: true };
+    switch (screen) {
+      case 'dashboard': return <DashboardScreen {...props}/>;
+      case 'calendar':  return <CalendarScreen  {...props}/>;
+      case 'training':  return <TrainingScreen  {...props}/>;
+      case 'food':      return <FoodScreen       {...props}/>;
+      case 'progress':  return <ProgressScreen  {...props}/>;
+      case 'ai':        return <AIScreen         {...props}/>;
+      default:          return <DashboardScreen  {...props}/>;
+    }
+  };
+
+  return (
+    <>
+      <div id="app-shell" style={{ background: tweaks.bgColor }}>
+        {/* Desktop sidebar */}
+        <Sidebar screen={screen} setScreen={setScreen} accent={accent}/>
+
+        {/* Mobile top bar */}
+        <TopBar screen={screen} accent={accent}/>
+
+        {/* Main area */}
+        <div id="main-content">
+          <div id="main-scroll" className="screen-enter" key={screen}>
+            {renderScreen()}
+          </div>
+
+          {/* Desktop right panel */}
+          {tweaks.showRightPanel && <RightPanel accent={accent}/>}
+        </div>
+
+        {/* Mobile bottom nav */}
+        <BottomNav screen={screen} setScreen={setScreen} accent={accent}/>
+      </div>
+
+      {/* Splash */}
+      {showSplash && <SplashOverlay onEnter={() => setShowSplash(false)}/>}
+
+      {/* Tweaks panel */}
+      {tweaksVisible && (
+        <TweaksPanel
+          tweaks={tweaks}
+          updateTweak={updateTweak}
+          accent={accent}
+          onClose={() => { setTweaksVisible(false); window.parent.postMessage({ type:'__edit_mode_dismissed' },'*'); }}
+        />
+      )}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
