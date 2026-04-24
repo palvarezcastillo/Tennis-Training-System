@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Mira Tennis Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #0d0805; font-family: 'Outfit', sans-serif; overflow: hidden; }
+  input, button, textarea { font-family: 'Outfit', sans-serif; outline: none; }
+  input { color-scheme: dark; }
+  ::-webkit-scrollbar { display: none; }
+  @keyframes pulse { from { opacity: 0.3; transform: scale(0.8); } to { opacity: 1; transform: scale(1.1); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .screen-enter { animation: fadeIn 0.3s ease forwards; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="components/shared.jsx"></script>
+<script type="text/babel" src="components/screens.jsx"></script>
+
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentColor": "#d4501a",
+  "bgColor": "#0d0805",
+  "playerOpacity": 0.9,
+  "showTournamentBanner": true
+}/*EDITMODE-END*/;
+
+const NAV_ITEMS = [
+  { id: 'dashboard', icon: 'home',     label: 'Inicio'  },
+  { id: 'calendar',  icon: 'calendar', label: 'Agenda'  },
+  { id: 'training',  icon: 'dumbbell', label: 'Entreno' },
+  { id: 'food',      icon: 'utensils', label: 'Comidas' },
+  { id: 'progress',  icon: 'chart',    label: 'Progreso'},
+  { id: 'ai',        icon: 'brain',    label: 'Coach'   },
+];
+
+function App() {
+  const [showSplash, setShowSplash] = React.useState(true);
+  const [screen, setScreen] = React.useState('dashboard');
+  const [tweaks, setTweaks] = React.useState(TWEAK_DEFAULTS);
+  const [tweaksVisible, setTweaksVisible] = React.useState(false);
+
+  // Tweaks protocol
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setTweaksVisible(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksVisible(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const updateTweak = (key, val) => {
+    const next = { ...tweaks, [key]: val };
+    setTweaks(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: next }, '*');
+  };
+
+  const accent = tweaks.accentColor;
+
+  const renderScreen = () => {
+    switch (screen) {
+      case 'dashboard': return <DashboardScreen setScreen={setScreen} />;
+      case 'calendar':  return <CalendarScreen />;
+      case 'training':  return <TrainingScreen />;
+      case 'food':      return <FoodScreen />;
+      case 'progress':  return <ProgressScreen />;
+      case 'ai':        return <AIScreen />;
+      default:          return <DashboardScreen setScreen={setScreen} />;
+    }
+  };
+
+  return (
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d0805' }}>
+      {/* Phone frame */}
+      <div style={{
+        width: 390, height: '100vh', maxHeight: 844,
+        background: tweaks.bgColor,
+        borderRadius: window.innerWidth > 420 ? 40 : 0,
+        border: window.innerWidth > 420 ? '3px solid #2a1208' : 'none',
+        boxShadow: window.innerWidth > 420 ? '0 40px 80px rgba(0,0,0,0.8), 0 0 0 1px #1a0c05' : 'none',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
+      }}>
+
+        {/* Status bar */}
+        <div style={{ padding: '12px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#f0dac8' }}>9:41</div>
+          <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+            {[3,3,3].map((_, i) => <div key={i} style={{ width: 3, height: 10 - i*2, background: '#f0dac8', borderRadius: 1 }} />)}
+            <div style={{ width: 14, height: 10, border: '1.5px solid #f0dac8', borderRadius: 2, marginLeft: 4, position: 'relative' }}>
+              <div style={{ position: 'absolute', top: 1.5, left: 1.5, right: 3, bottom: 1.5, background: '#f0dac8', borderRadius: 1 }} />
+              <div style={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', width: 2, height: 5, background: '#f0dac8', borderRadius: 1 }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll area */}
+        <div style={{ flex: 1, overflowY: 'auto', paddingTop: 12 }} className="screen-enter" key={screen}>
+          {renderScreen()}
+        </div>
+
+        {/* Bottom nav */}
+        <div style={{
+          background: '#120804', borderTop: '1px solid #2a1208',
+          padding: '8px 0 20px', display: 'flex', flexShrink: 0,
+        }}>
+          {NAV_ITEMS.map(item => {
+            const active = screen === item.id;
+            return (
+              <button key={item.id} onClick={() => setScreen(item.id)} style={{
+                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                background: 'none', border: 'none', cursor: 'pointer', padding: '6px 2px',
+              }}>
+                <div style={{ position: 'relative' }}>
+                  {active && <div style={{ position: 'absolute', inset: -6, borderRadius: '50%', background: `${accent}18` }} />}
+                  <Icon name={item.icon} size={20} color={active ? accent : '#4a2810'} />
+                </div>
+                <div style={{ fontSize: 9, fontWeight: active ? 700 : 400, color: active ? accent : '#4a2810', letterSpacing: 0.3 }}>{item.label}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Splash overlay */}
+      {showSplash && <SplashScreen onEnter={() => setShowSplash(false)} />}
+
+      {/* Tweaks panel */}
+      {tweaksVisible && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#1a0c05', border: '1px solid #3a1808', borderRadius: 16, padding: 20, width: 260, zIndex: 200, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Tweaks</div>
+            <button onClick={() => { setTweaksVisible(false); window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); }} style={{ background: 'none', border: 'none', color: '#8a5a3a', cursor: 'pointer', fontSize: 18 }}>×</button>
+          </div>
+          {[
+            { label: 'Color principal', key: 'accentColor', type: 'color' },
+            { label: 'Fondo', key: 'bgColor', type: 'color' },
+            { label: 'Banner torneo', key: 'showTournamentBanner', type: 'toggle' },
+          ].map(t => (
+            <div key={t.key} style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 6 }}>{t.label}</div>
+              {t.type === 'color' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input type="color" value={tweaks[t.key]} onChange={e => updateTweak(t.key, e.target.value)} style={{ width: 36, height: 28, border: 'none', borderRadius: 6, cursor: 'pointer', background: 'none' }} />
+                  <div style={{ fontSize: 12, color: '#f0dac8', fontFamily: 'monospace' }}>{tweaks[t.key]}</div>
+                </div>
+              )}
+              {t.type === 'toggle' && (
+                <div onClick={() => updateTweak(t.key, !tweaks[t.key])} style={{ width: 44, height: 24, borderRadius: 12, background: tweaks[t.key] ? accent : '#2a1808', cursor: 'pointer', position: 'relative', transition: 'background 0.3s' }}>
+                  <div style={{ position: 'absolute', top: 3, left: tweaks[t.key] ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.3s' }} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
