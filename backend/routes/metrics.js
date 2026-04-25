@@ -3,8 +3,11 @@ const supabase   = require('../middleware/supabase');
 
 const router = Router();
 
+const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Database not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in .env' }); return false; } return true; };
+
 // GET /api/metrics/today
 router.get('/today', async (_req, res) => {
+  if (!dbCheck(res)) return;
   const today = new Date().toISOString().slice(0, 10);
 
   const { data, error } = await supabase
@@ -19,6 +22,7 @@ router.get('/today', async (_req, res) => {
 
 // PUT /api/metrics/today
 router.put('/today', async (req, res) => {
+  if (!dbCheck(res)) return;
   const today = new Date().toISOString().slice(0, 10);
   const updates = { ...req.body, date: today };
 

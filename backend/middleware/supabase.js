@@ -1,12 +1,14 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl  = process.env.SUPABASE_URL;
-const supabaseKey  = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY in environment variables');
+  console.warn('[supabase] WARNING: SUPABASE_URL or SUPABASE_ANON_KEY not set — DB routes will fail until .env is configured.');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = supabaseUrl && supabaseKey
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
 module.exports = supabase;
