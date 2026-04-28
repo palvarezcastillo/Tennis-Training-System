@@ -106,17 +106,32 @@ const SplashScreen = ({ onEnter }) => {
 
 // ─── DASHBOARD ─────────────────────────────────────────────────────────────────
 const DashboardScreen = ({ setScreen }) => {
-  const todayEntry = WEEK_DATA.find(d => d.today);
-  const totalCal = MEAL_DATA.reduce((s, m) => s + m.cal, 0);
-  const totalP = MEAL_DATA.reduce((s, m) => s + m.p, 0);
+  const [apiMetrics, setApiMetrics] = React.useState(null);
+  const [loadingMetrics, setLoadingMetrics] = React.useState(true);
+  const [metricsError, setMetricsError] = React.useState(null);
+
+  React.useEffect(() => {
+    fetch('http://localhost:3001/api/metrics/today')
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(data => setApiMetrics(data))
+      .catch(err => setMetricsError(err.toString()))
+      .finally(() => setLoadingMetrics(false));
+  }, []);
+
+  const weight     = apiMetrics?.weight       ?? 81.7;
+  const calories   = apiMetrics?.calories     ?? 1420;
+  const protein    = apiMetrics?.protein      ?? 95;
+  const sleepHours = apiMetrics?.sleep_hours  ?? 7.5;
+  const heartRate  = apiMetrics?.heart_rate   ?? 58;
+  const water      = apiMetrics?.water_liters ?? 2.1;
 
   const metrics = [
-    { label: "Peso", value: "81.7", unit: "kg", icon: "target", color: "#e87a3c", ring: 81.7, max: 90 },
-    { label: "Calorías", value: totalCal, unit: "kcal", icon: "fire", color: "#d4501a", ring: totalCal, max: 2800 },
-    { label: "Proteína", value: totalP, unit: "g", icon: "bolt", color: "#f0a060", ring: totalP, max: 180 },
-    { label: "Sueño", value: "7.5", unit: "h", icon: "moon", color: "#a060d4", ring: 7.5, max: 9 },
-    { label: "FC Reposo", value: "58", unit: "bpm", icon: "heart", color: "#e04060", ring: 58, max: 80 },
-    { label: "Agua", value: "2.1", unit: "L", icon: "drop", color: "#40a0d4", ring: 2.1, max: 3 },
+    { label: "Peso",      value: weight,     unit: "kg",   icon: "target", color: "#e87a3c", ring: weight,     max: 90   },
+    { label: "Calorías",  value: calories,   unit: "kcal", icon: "fire",   color: "#d4501a", ring: calories,   max: 2800 },
+    { label: "Proteína",  value: protein,    unit: "g",    icon: "bolt",   color: "#f0a060", ring: protein,    max: 180  },
+    { label: "Sueño",     value: sleepHours, unit: "h",    icon: "moon",   color: "#a060d4", ring: sleepHours, max: 9    },
+    { label: "FC Reposo", value: heartRate,  unit: "bpm",  icon: "heart",  color: "#e04060", ring: heartRate,  max: 80   },
+    { label: "Agua",      value: water,      unit: "L",    icon: "drop",   color: "#40a0d4", ring: water,      max: 3    },
   ];
 
   return (
@@ -144,23 +159,34 @@ const DashboardScreen = ({ setScreen }) => {
 
       {/* Metrics grid */}
       <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Métricas del día</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
-        {metrics.map(m => (
-          <div key={m.label} style={{ background: '#1a0c05', borderRadius: 14, padding: '12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ position: 'relative' }}>
-              <RingChart value={m.ring} max={m.max} color={m.color} size={58} strokeWidth={5}>
-                <foreignObject x={8} y={8} width={42} height={42}>
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name={m.icon} size={16} color={m.color} />
-                  </div>
-                </foreignObject>
-              </RingChart>
+      {metricsError && (
+        <div style={{ background: 'rgba(212,80,26,0.08)', border: '1px solid rgba(212,80,26,0.25)', borderRadius: 10, padding: '8px 14px', marginBottom: 12, fontSize: 11, color: '#e87a3c' }}>
+          Sin conexión al backend — mostrando datos de ejemplo
+        </div>
+      )}
+      {loadingMetrics ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 120, marginBottom: 20 }}>
+          <div style={{ fontSize: 13, color: '#5a3a22' }}>Cargando métricas...</div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
+          {metrics.map(m => (
+            <div key={m.label} style={{ background: '#1a0c05', borderRadius: 14, padding: '12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <div style={{ position: 'relative' }}>
+                <RingChart value={m.ring} max={m.max} color={m.color} size={58} strokeWidth={5}>
+                  <foreignObject x={8} y={8} width={42} height={42}>
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name={m.icon} size={16} color={m.color} />
+                    </div>
+                  </foreignObject>
+                </RingChart>
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{m.value}<span style={{ fontSize: 9, color: '#8a5a3a', fontWeight: 400, marginLeft: 1 }}>{m.unit}</span></div>
+              <div style={{ fontSize: 10, color: '#8a5a3a' }}>{m.label}</div>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{m.value}<span style={{ fontSize: 9, color: '#8a5a3a', fontWeight: 400, marginLeft: 1 }}>{m.unit}</span></div>
-            <div style={{ fontSize: 10, color: '#8a5a3a' }}>{m.label}</div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* RPE / Intensidad */}
       <div style={{ background: '#1a0c05', borderRadius: 14, padding: '14px 16px', marginBottom: 14 }}>
@@ -188,8 +214,8 @@ const DashboardScreen = ({ setScreen }) => {
         <button onClick={() => setScreen('food')} style={{ background: '#1a0c05', border: '1px solid #3a1808', borderRadius: 14, padding: '14px', cursor: 'pointer', textAlign: 'left' }}>
           <Icon name="utensils" size={20} color="#e87a3c" />
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginTop: 8 }}>Registrar comida</div>
-          <div style={{ fontSize: 11, color: '#8a5a3a' }}>{totalCal} / 2800 kcal</div>
-          <MiniBar value={totalCal} max={2800} color="#e87a3c" />
+          <div style={{ fontSize: 11, color: '#8a5a3a' }}>{calories} / 2800 kcal</div>
+          <MiniBar value={calories} max={2800} color="#e87a3c" />
         </button>
         <button onClick={() => setScreen('training')} style={{ background: '#1a0c05', border: '1px solid #3a1808', borderRadius: 14, padding: '14px', cursor: 'pointer', textAlign: 'left' }}>
           <Icon name="racket" size={20} color="#d4501a" />
@@ -206,8 +232,56 @@ const DashboardScreen = ({ setScreen }) => {
 
 // ─── CALENDAR ─────────────────────────────────────────────────────────────────
 const CalendarScreen = () => {
-  const [selectedDay, setSelectedDay] = React.useState(4);
+  const [weekData, setWeekData]     = React.useState(WEEK_DATA);
+  const [loadingWeek, setLoadingWeek] = React.useState(true);
+  const [weekError, setWeekError]   = React.useState(null);
+  const [selectedDay, setSelectedDay] = React.useState(() => {
+    const idx = WEEK_DATA.findIndex(d => d.today);
+    return idx >= 0 ? idx : 4;
+  });
   const [planModal, setPlanModal] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch('http://localhost:3001/api/sessions/week')
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(sessions => {
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0, 10);
+        const dow = today.getDay();
+        const mondayOffset = dow === 0 ? -6 : 1 - dow;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + mondayOffset);
+
+        const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        const TYPE_LABELS = { gym: 'Gym', tennis: 'Cancha', rest: 'Descanso', tournament: 'Torneo' };
+
+        const week = DAY_NAMES.map((dayName, i) => {
+          const d = new Date(monday);
+          d.setDate(monday.getDate() + i);
+          const dateStr = d.toISOString().slice(0, 10);
+          const isToday = dateStr === todayStr;
+          const session = sessions.find(s => s.date === dateStr);
+          const type = session?.type || 'rest';
+          return {
+            day: dayName,
+            date: String(d.getDate()),
+            type,
+            label: session?.label || TYPE_LABELS[type] || 'Descanso',
+            done: session?.done ?? false,
+            intensity: session?.intensity ?? 0,
+            ...(isToday ? { today: true } : {}),
+          };
+        });
+
+        setWeekData(week);
+        const todayIdx = week.findIndex(d => d.today);
+        if (todayIdx >= 0) setSelectedDay(todayIdx);
+      })
+      .catch(err => setWeekError(err.toString()))
+      .finally(() => setLoadingWeek(false));
+  }, []);
+
+  const sel = weekData[selectedDay] || weekData[0];
 
   const upcoming = [
     { date: "25 Abr", event: "Torneo Club Palermo", type: "tournament", level: "A2" },
@@ -218,34 +292,45 @@ const CalendarScreen = () => {
   return (
     <div style={{ padding: '0 16px 20px' }}>
       <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Calendario</div>
-      <div style={{ fontSize: 13, color: '#8a5a3a', marginBottom: 20 }}>Semana del 20 al 26 de Abril</div>
+      <div style={{ fontSize: 13, color: '#8a5a3a', marginBottom: 12 }}>
+        {weekError ? 'Semana del 20 al 26 de Abril' : `Semana del ${weekData[0]?.date} al ${weekData[6]?.date}`}
+      </div>
+
+      {weekError && (
+        <div style={{ background: 'rgba(212,80,26,0.08)', border: '1px solid rgba(212,80,26,0.25)', borderRadius: 10, padding: '8px 14px', marginBottom: 12, fontSize: 11, color: '#e87a3c' }}>
+          Sin conexión al backend — mostrando datos de ejemplo
+        </div>
+      )}
 
       {/* Week strip */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {WEEK_DATA.map((d, i) => (
-          <button key={i} onClick={() => setSelectedDay(i)} style={{
-            flex: 1, background: selectedDay === i ? (d.today ? '#d4501a' : '#2a1808') : '#1a0c05',
-            border: `1px solid ${selectedDay === i ? TYPE_COLOR[d.type] : '#2a1208'}`,
-            borderRadius: 12, padding: '8px 4px', cursor: 'pointer',
-            outline: d.today ? '2px solid #d4501a' : 'none', outlineOffset: 2,
-          }}>
-            <div style={{ fontSize: 9, color: '#8a5a3a', textTransform: 'uppercase', marginBottom: 2 }}>{d.day}</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{d.date}</div>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: TYPE_COLOR[d.type], margin: '4px auto 0' }} />
-          </button>
-        ))}
-      </div>
+      {loadingWeek ? (
+        <div style={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <div style={{ fontSize: 13, color: '#5a3a22' }}>Cargando semana...</div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          {weekData.map((d, i) => (
+            <button key={i} onClick={() => setSelectedDay(i)} style={{
+              flex: 1, background: selectedDay === i ? (d.today ? '#d4501a' : '#2a1808') : '#1a0c05',
+              border: `1px solid ${selectedDay === i ? TYPE_COLOR[d.type] : '#2a1208'}`,
+              borderRadius: 12, padding: '8px 4px', cursor: 'pointer',
+              outline: d.today ? '2px solid #d4501a' : 'none', outlineOffset: 2,
+            }}>
+              <div style={{ fontSize: 9, color: '#8a5a3a', textTransform: 'uppercase', marginBottom: 2 }}>{d.day}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{d.date}</div>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: TYPE_COLOR[d.type], margin: '4px auto 0' }} />
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Selected day detail */}
       <div style={{ background: '#1a0c05', borderRadius: 16, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>
-              {WEEK_DATA[selectedDay].day} {WEEK_DATA[selectedDay].date} Abr
-            </div>
-            <div style={{ fontSize: 12, color: TYPE_COLOR[WEEK_DATA[selectedDay].type] }}>
-              {WEEK_DATA[selectedDay].label}
-              {WEEK_DATA[selectedDay].today && ' • HOY'}
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{sel.day} {sel.date}</div>
+            <div style={{ fontSize: 12, color: TYPE_COLOR[sel.type] }}>
+              {sel.label}{sel.today && ' • HOY'}
             </div>
           </div>
           <button onClick={() => setPlanModal(true)} style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', color: '#d4501a', fontSize: 12, fontWeight: 600 }}>
@@ -253,31 +338,31 @@ const CalendarScreen = () => {
           </button>
         </div>
 
-        {WEEK_DATA[selectedDay].type === 'tennis' && (
+        {sel.type === 'tennis' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {['Calentamiento 20min', 'Peloteo de fondo 30min', 'Trabajo de volea 20min', 'Saque y resto 15min', 'Partido de práctica'].map((t, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #2a1208' }}>
-                <div style={{ width: 20, height: 20, borderRadius: '50%', background: WEEK_DATA[selectedDay].done ? '#d4501a' : '#2a1808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {WEEK_DATA[selectedDay].done && <Icon name="check" size={11} color="#fff" />}
+                <div style={{ width: 20, height: 20, borderRadius: '50%', background: sel.done ? '#d4501a' : '#2a1808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {sel.done && <Icon name="check" size={11} color="#fff" />}
                 </div>
-                <div style={{ fontSize: 13, color: WEEK_DATA[selectedDay].done ? '#a07050' : '#f0dac8' }}>{t}</div>
+                <div style={{ fontSize: 13, color: sel.done ? '#a07050' : '#f0dac8' }}>{t}</div>
               </div>
             ))}
           </div>
         )}
-        {WEEK_DATA[selectedDay].type === 'gym' && (
+        {sel.type === 'gym' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {['Sentadillas 4x8 80kg', 'Press banca 3x10 70kg', 'Peso muerto 3x6 100kg', 'Trabajo de core 20min', 'Estiramiento 10min'].map((t, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #2a1208' }}>
-                <div style={{ width: 20, height: 20, borderRadius: '50%', background: WEEK_DATA[selectedDay].done ? '#e87a3c' : '#2a1808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {WEEK_DATA[selectedDay].done && <Icon name="check" size={11} color="#fff" />}
+                <div style={{ width: 20, height: 20, borderRadius: '50%', background: sel.done ? '#e87a3c' : '#2a1808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {sel.done && <Icon name="check" size={11} color="#fff" />}
                 </div>
-                <div style={{ fontSize: 13, color: WEEK_DATA[selectedDay].done ? '#a07050' : '#f0dac8' }}>{t}</div>
+                <div style={{ fontSize: 13, color: sel.done ? '#a07050' : '#f0dac8' }}>{t}</div>
               </div>
             ))}
           </div>
         )}
-        {WEEK_DATA[selectedDay].type === 'tournament' && (
+        {sel.type === 'tournament' && (
           <div style={{ textAlign: 'center', padding: '16px 0' }}>
             <Icon name="trophy" size={40} color="#f0c040" />
             <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 8 }}>Club Tenis Palermo</div>
@@ -285,7 +370,7 @@ const CalendarScreen = () => {
             <div style={{ fontSize: 12, color: '#8a5a3a', marginTop: 4 }}>09:00 hs · Cancha 3</div>
           </div>
         )}
-        {WEEK_DATA[selectedDay].type === 'rest' && (
+        {sel.type === 'rest' && (
           <div style={{ textAlign: 'center', padding: '16px 0' }}>
             <Icon name="moon" size={36} color="#a060d4" />
             <div style={{ fontSize: 14, color: '#f0dac8', marginTop: 8 }}>Día de recuperación activa</div>
@@ -447,18 +532,57 @@ const TrainingScreen = () => {
 
 // ─── FOOD ─────────────────────────────────────────────────────────────────────
 const FoodScreen = () => {
-  const [meals, setMeals] = React.useState(MEAL_DATA);
+  const [meals, setMeals]     = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError]     = React.useState(null);
   const [showAdd, setShowAdd] = React.useState(false);
   const [newMeal, setNewMeal] = React.useState({ name: 'Merienda', items: '', cal: '', p: '', c: '', g: '' });
 
-  const total = { cal: meals.reduce((s,m) => s+m.cal, 0), p: meals.reduce((s,m) => s+m.p, 0), c: meals.reduce((s,m) => s+m.c, 0), g: meals.reduce((s,m) => s+m.g, 0) };
+  const fetchMeals = () => {
+    setLoading(true);
+    fetch('http://localhost:3001/api/meals/today')
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(data => { setMeals(data); setError(null); })
+      .catch(err => setError(err.toString()))
+      .finally(() => setLoading(false));
+  };
+
+  React.useEffect(() => { fetchMeals(); }, []);
+
+  // normalize field names: API returns protein/carbs/fat, fallback to p/c/g
+  const p = m => m.protein ?? m.p ?? 0;
+  const c = m => m.carbs   ?? m.c ?? 0;
+  const g = m => m.fat     ?? m.g ?? 0;
+
+  const total = {
+    cal: meals.reduce((s, m) => s + (m.cal || 0), 0),
+    p:   meals.reduce((s, m) => s + p(m), 0),
+    c:   meals.reduce((s, m) => s + c(m), 0),
+    g:   meals.reduce((s, m) => s + g(m), 0),
+  };
   const targets = { cal: 2800, p: 180, c: 320, g: 80 };
 
   const addMeal = () => {
     if (!newMeal.items) return;
-    setMeals(prev => [...prev, { ...newMeal, cal: +newMeal.cal || 300, p: +newMeal.p || 20, c: +newMeal.c || 40, g: +newMeal.g || 8, time: new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) }]);
-    setShowAdd(false);
-    setNewMeal({ name: 'Cena', items: '', cal: '', p: '', c: '', g: '' });
+    fetch('http://localhost:3001/api/meals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name:    newMeal.name,
+        items:   newMeal.items,
+        cal:     +newMeal.cal || 300,
+        protein: +newMeal.p   || 20,
+        carbs:   +newMeal.c   || 40,
+        fat:     +newMeal.g   || 8,
+      }),
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(() => {
+        fetchMeals();
+        setShowAdd(false);
+        setNewMeal({ name: 'Cena', items: '', cal: '', p: '', c: '', g: '' });
+      })
+      .catch(err => setError(err.toString()));
   };
 
   return (
@@ -473,19 +597,25 @@ const FoodScreen = () => {
         </button>
       </div>
 
+      {error && (
+        <div style={{ background: 'rgba(212,80,26,0.08)', border: '1px solid rgba(212,80,26,0.25)', borderRadius: 10, padding: '8px 14px', marginBottom: 12, fontSize: 11, color: '#e87a3c' }}>
+          Sin conexión al backend — verificá que el servidor esté corriendo
+        </div>
+      )}
+
       {/* Macro rings */}
       <div style={{ background: '#1a0c05', borderRadius: 16, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
           {[
             { label: 'Calorías', val: total.cal, max: targets.cal, unit: 'kcal', color: '#d4501a' },
-            { label: 'Proteína', val: total.p, max: targets.p, unit: 'g', color: '#e87a3c' },
-            { label: 'Carbs', val: total.c, max: targets.c, unit: 'g', color: '#f0a060' },
-            { label: 'Grasas', val: total.g, max: targets.g, unit: 'g', color: '#a060d4' },
+            { label: 'Proteína', val: total.p,   max: targets.p,   unit: 'g',    color: '#e87a3c' },
+            { label: 'Carbs',    val: total.c,   max: targets.c,   unit: 'g',    color: '#f0a060' },
+            { label: 'Grasas',   val: total.g,   max: targets.g,   unit: 'g',    color: '#a060d4' },
           ].map(m => (
             <div key={m.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
               <div style={{ position: 'relative' }}>
                 <RingChart value={m.val} max={m.max} color={m.color} size={64} strokeWidth={6}>
-                  <text x="32" y="36" textAnchor="middle" style={{ fill: '#fff', fontSize: 11, fontWeight: 800 }}>{Math.round((m.val/m.max)*100)}%</text>
+                  <text x="32" y="36" textAnchor="middle" style={{ fill: '#fff', fontSize: 11, fontWeight: 800 }}>{Math.round((m.val / m.max) * 100)}%</text>
                 </RingChart>
               </div>
               <div style={{ fontSize: 13, fontWeight: 800, color: m.color }}>{m.val}<span style={{ fontSize: 9, color: '#5a3a22' }}>{m.unit}</span></div>
@@ -500,31 +630,37 @@ const FoodScreen = () => {
 
       {/* Meals */}
       <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Comidas del día</div>
-      {meals.map((m, i) => (
-        <div key={i} style={{ background: '#1a0c05', borderRadius: 14, padding: '14px 16px', marginBottom: 10 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{m.name}</div>
-              <div style={{ fontSize: 11, color: '#5a3a22' }}>{m.time} · {m.items}</div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 16, fontWeight: 900, color: '#d4501a' }}>{m.cal}</div>
-              <div style={{ fontSize: 9, color: '#5a3a22' }}>kcal</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {[{ l: 'P', v: m.p, c: '#e87a3c' }, { l: 'C', v: m.c, c: '#f0a060' }, { l: 'G', v: m.g, c: '#a060d4' }].map(mc => (
-              <div key={mc.l} style={{ flex: 1, background: '#2a1208', borderRadius: 8, padding: '4px 0', textAlign: 'center' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: mc.c }}>{mc.v}g</div>
-                <div style={{ fontSize: 9, color: '#5a3a22' }}>{mc.l}</div>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 24, fontSize: 13, color: '#5a3a22' }}>Cargando comidas...</div>
+      ) : meals.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 24, fontSize: 13, color: '#5a3a22' }}>No hay comidas registradas hoy</div>
+      ) : (
+        meals.map((m, i) => (
+          <div key={m.id || i} style={{ background: '#1a0c05', borderRadius: 14, padding: '14px 16px', marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{m.name}</div>
+                <div style={{ fontSize: 11, color: '#5a3a22' }}>{m.time} · {m.items}</div>
               </div>
-            ))}
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#d4501a' }}>{m.cal}</div>
+                <div style={{ fontSize: 9, color: '#5a3a22' }}>kcal</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[{ l: 'P', v: p(m), col: '#e87a3c' }, { l: 'C', v: c(m), col: '#f0a060' }, { l: 'G', v: g(m), col: '#a060d4' }].map(mc => (
+                <div key={mc.l} style={{ flex: 1, background: '#2a1208', borderRadius: 8, padding: '4px 0', textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: mc.col }}>{mc.v}g</div>
+                  <div style={{ fontSize: 9, color: '#5a3a22' }}>{mc.l}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))
+      )}
 
       {/* Pre-tournament tip */}
-      <div style={{ background: 'rgba(240,192,64,0.08)', border: '1px solid rgba(240,192,64,0.2)', borderRadius: 14, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+      <div style={{ background: 'rgba(240,192,64,0.08)', border: '1px solid rgba(240,192,64,0.2)', borderRadius: 14, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 4 }}>
         <Icon name="trophy" size={18} color="#f0c040" />
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#f0c040', marginBottom: 2 }}>Torneo mañana</div>
@@ -537,12 +673,12 @@ const FoodScreen = () => {
           <div style={{ background: '#1a0c05', width: '100%', borderRadius: '20px 20px 0 0', padding: 24 }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Nueva comida</div>
             {[
-              { label: 'Comida', key: 'name', placeholder: 'Ej: Cena' },
-              { label: 'Alimentos', key: 'items', placeholder: 'Ej: Pasta + pollo + verduras' },
-              { label: 'Calorías', key: 'cal', placeholder: '500' },
-              { label: 'Proteína (g)', key: 'p', placeholder: '40' },
-              { label: 'Carbos (g)', key: 'c', placeholder: '70' },
-              { label: 'Grasas (g)', key: 'g', placeholder: '12' },
+              { label: 'Comida',      key: 'name', placeholder: 'Ej: Cena' },
+              { label: 'Alimentos',   key: 'items', placeholder: 'Ej: Pasta + pollo + verduras' },
+              { label: 'Calorías',    key: 'cal',   placeholder: '500' },
+              { label: 'Proteína (g)', key: 'p',    placeholder: '40' },
+              { label: 'Carbos (g)',   key: 'c',    placeholder: '70' },
+              { label: 'Grasas (g)',   key: 'g',    placeholder: '12' },
             ].map(f => (
               <div key={f.key} style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>{f.label}</div>
