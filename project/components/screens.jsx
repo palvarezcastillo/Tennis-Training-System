@@ -232,68 +232,136 @@ const DashboardScreen = ({ setScreen }) => {
 
 // ─── CALENDAR ─────────────────────────────────────────────────────────────────
 const CalendarScreen = () => {
-  const [weekData, setWeekData]     = React.useState(WEEK_DATA);
+  const [weekOffset, setWeekOffset]   = React.useState(0);
+  const [refreshKey, setRefreshKey]   = React.useState(0);
+  const [weekData, setWeekData]       = React.useState(WEEK_DATA);
+  const [weekLabel, setWeekLabel]     = React.useState('');
   const [loadingWeek, setLoadingWeek] = React.useState(true);
-  const [weekError, setWeekError]   = React.useState(null);
+  const [weekError, setWeekError]     = React.useState(null);
   const [selectedDay, setSelectedDay] = React.useState(() => {
     const idx = WEEK_DATA.findIndex(d => d.today);
-    return idx >= 0 ? idx : 4;
+    return idx >= 0 ? idx : 0;
   });
-  const [planModal, setPlanModal] = React.useState(false);
+  const [planModal, setPlanModal]     = React.useState(false);
+  const [allTournaments, setAllTournaments]   = React.useState([]);
+  const [showAddTournament, setShowAddTournament] = React.useState(false);
+  const [newTournament, setNewTournament] = React.useState({ name: '', date: '', location: '', category: 'Club', notes: '' });
+  const [savingTournament, setSavingTournament] = React.useState(false);
 
+  const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const fmtDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+
+  const getMonday = (offset) => {
+    const today = new Date();
+    const dow = today.getDay();
+    const shift = dow === 0 ? -6 : 1 - dow;
+    const mon = new Date(today);
+    mon.setDate(today.getDate() + shift + offset * 7);
+    return mon;
+  };
+
+  // Load sessions + week tournaments when offset or refreshKey changes
   React.useEffect(() => {
-    fetch('http://localhost:3001/api/sessions/week')
-      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
-      .then(sessions => {
-        const today = new Date();
-        const todayStr = today.toISOString().slice(0, 10);
-        const dow = today.getDay();
-        const mondayOffset = dow === 0 ? -6 : 1 - dow;
-        const monday = new Date(today);
-        monday.setDate(today.getDate() + mondayOffset);
+    setLoadingWeek(true);
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const monday = getMonday(weekOffset);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const monStr = monday.toISOString().slice(0, 10);
+    const sunStr = sunday.toISOString().slice(0, 10);
 
-        const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-        const TYPE_LABELS = { gym: 'Gym', tennis: 'Cancha', rest: 'Descanso', tournament: 'Torneo' };
+    setWeekLabel(`${fmtDate(monday)} – ${fmtDate(sunday)}`);
 
-        const week = DAY_NAMES.map((dayName, i) => {
-          const d = new Date(monday);
-          d.setDate(monday.getDate() + i);
-          const dateStr = d.toISOString().slice(0, 10);
-          const isToday = dateStr === todayStr;
-          const session = sessions.find(s => s.date === dateStr);
-          const type = session?.type || 'rest';
-          return {
-            day: dayName,
-            date: String(d.getDate()),
-            type,
-            label: session?.label || TYPE_LABELS[type] || 'Descanso',
-            done: session?.done ?? false,
-            intensity: session?.intensity ?? 0,
-            ...(isToday ? { today: true } : {}),
-          };
-        });
+    const DAY_NAMES = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+    const TYPE_LABELS = { gym:'Gym', tennis:'Cancha', rest:'Descanso', tournament:'Torneo' };
 
-        setWeekData(week);
+    Promise.all([
+      fetch(`http://localhost:3001/api/sessions/week?offset=${weekOffset}`)
+        .then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
+      fetch(`http://localhost:3001/api/tournaments?from=${monStr}&to=${sunStr}`)
+        .then(r => r.ok ? r.json() : []),
+    ]).then(([sessions, weekTournaments]) => {
+      const week = DAY_NAMES.map((dayName, i) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        const dateStr = d.toISOString().slice(0, 10);
+        const isToday = dateStr === todayStr;
+        const session = sessions.find(s => s.date === dateStr);
+        const trn = weekTournaments.find(t => t.date === dateStr);
+        const type = trn ? 'tournament' : (session?.type || 'rest');
+        return {
+          day: dayName,
+          date: String(d.getDate()),
+          fullDate: dateStr,
+          type,
+          label: trn ? trn.name : (session?.label || TYPE_LABELS[type] || 'Descanso'),
+          done: session?.done ?? false,
+          intensity: session?.intensity ?? 0,
+          tournament: trn || null,
+          ...(isToday ? { today: true } : {}),
+        };
+      });
+      setWeekData(week);
+      setWeekError(null);
+      if (weekOffset === 0) {
         const todayIdx = week.findIndex(d => d.today);
         if (todayIdx >= 0) setSelectedDay(todayIdx);
+      } else {
+        setSelectedDay(0);
+      }
+    }).catch(err => {
+      setWeekError(err.toString());
+      if (weekOffset === 0) setWeekData(WEEK_DATA);
+    }).finally(() => setLoadingWeek(false));
+  }, [weekOffset, refreshKey]);
+
+  // Load all tournaments for the list section
+  React.useEffect(() => {
+    fetch('http://localhost:3001/api/tournaments')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setAllTournaments(data))
+      .catch(() => {});
+  }, [refreshKey]);
+
+  const addTournament = () => {
+    if (!newTournament.name || !newTournament.date) return;
+    setSavingTournament(true);
+    fetch('http://localhost:3001/api/tournaments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newTournament),
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(() => {
+        setShowAddTournament(false);
+        setNewTournament({ name: '', date: '', location: '', category: 'Club', notes: '' });
+        setRefreshKey(k => k + 1);
       })
       .catch(err => setWeekError(err.toString()))
-      .finally(() => setLoadingWeek(false));
-  }, []);
+      .finally(() => setSavingTournament(false));
+  };
 
-  const sel = weekData[selectedDay] || weekData[0];
+  const deleteTournament = (id) => {
+    fetch(`http://localhost:3001/api/tournaments/${id}`, { method: 'DELETE' })
+      .then(() => setRefreshKey(k => k + 1))
+      .catch(err => setWeekError(err.toString()));
+  };
 
-  const upcoming = [
-    { date: "25 Abr", event: "Torneo Club Palermo", type: "tournament", level: "A2" },
-    { date: "3 May", event: "Liga Amateur Zona Norte", type: "tournament", level: "B1" },
-    { date: "10 May", event: "Torneo Ranking AATT", type: "tournament", level: "A1" },
-  ];
+  const sel = weekData[selectedDay] || weekData[0] || {};
 
   return (
     <div style={{ padding: '0 16px 20px' }}>
-      <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Calendario</div>
-      <div style={{ fontSize: 13, color: '#8a5a3a', marginBottom: 12 }}>
-        {weekError ? 'Semana del 20 al 26 de Abril' : `Semana del ${weekData[0]?.date} al ${weekData[6]?.date}`}
+      <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 12 }}>Calendario</div>
+
+      {/* Week navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <button onClick={() => setWeekOffset(o => o - 1)} style={{ background: '#1a0c05', border: '1px solid #2a1208', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', color: '#f0dac8', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>‹</button>
+        <div style={{ flex: 1, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#f0dac8' }}>{weekLabel}</div>
+        <button onClick={() => setWeekOffset(o => o + 1)} style={{ background: '#1a0c05', border: '1px solid #2a1208', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', color: '#f0dac8', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>›</button>
+        {weekOffset !== 0 && (
+          <button onClick={() => setWeekOffset(0)} style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 10, padding: '6px 10px', cursor: 'pointer', color: '#d4501a', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>Hoy</button>
+        )}
       </div>
 
       {weekError && (
@@ -308,16 +376,16 @@ const CalendarScreen = () => {
           <div style={{ fontSize: 13, color: '#5a3a22' }}>Cargando semana...</div>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {weekData.map((d, i) => (
             <button key={i} onClick={() => setSelectedDay(i)} style={{
-              flex: 1, background: selectedDay === i ? (d.today ? '#d4501a' : '#2a1808') : '#1a0c05',
+              flex: 1, background: selectedDay === i ? (d.type === 'tournament' ? '#3a2a00' : '#2a1808') : '#1a0c05',
               border: `1px solid ${selectedDay === i ? TYPE_COLOR[d.type] : '#2a1208'}`,
-              borderRadius: 12, padding: '8px 4px', cursor: 'pointer',
+              borderRadius: 12, padding: '8px 2px', cursor: 'pointer',
               outline: d.today ? '2px solid #d4501a' : 'none', outlineOffset: 2,
             }}>
               <div style={{ fontSize: 9, color: '#8a5a3a', textTransform: 'uppercase', marginBottom: 2 }}>{d.day}</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{d.date}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{d.date}</div>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: TYPE_COLOR[d.type], margin: '4px auto 0' }} />
             </button>
           ))}
@@ -325,80 +393,124 @@ const CalendarScreen = () => {
       )}
 
       {/* Selected day detail */}
-      <div style={{ background: '#1a0c05', borderRadius: 16, padding: 16, marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{sel.day} {sel.date}</div>
-            <div style={{ fontSize: 12, color: TYPE_COLOR[sel.type] }}>
-              {sel.label}{sel.today && ' • HOY'}
+      {!loadingWeek && (
+        <div style={{ background: '#1a0c05', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{sel.day} {sel.date}</div>
+              <div style={{ fontSize: 12, color: TYPE_COLOR[sel.type] || '#8a5a3a' }}>
+                {sel.label}{sel.today && ' • HOY'}
+              </div>
             </div>
+            <button onClick={() => setPlanModal(true)} style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', color: '#d4501a', fontSize: 12, fontWeight: 600 }}>
+              + Planificar
+            </button>
           </div>
-          <button onClick={() => setPlanModal(true)} style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', color: '#d4501a', fontSize: 12, fontWeight: 600 }}>
-            + Planificar
-          </button>
-        </div>
 
-        {sel.type === 'tennis' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {['Calentamiento 20min', 'Peloteo de fondo 30min', 'Trabajo de volea 20min', 'Saque y resto 15min', 'Partido de práctica'].map((t, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #2a1208' }}>
-                <div style={{ width: 20, height: 20, borderRadius: '50%', background: sel.done ? '#d4501a' : '#2a1808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {sel.done && <Icon name="check" size={11} color="#fff" />}
+          {sel.type === 'tennis' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {['Calentamiento 20min','Peloteo de fondo 30min','Trabajo de volea 20min','Saque y resto 15min','Partido de práctica'].map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #2a1208' }}>
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: sel.done ? '#d4501a' : '#2a1808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {sel.done && <Icon name="check" size={11} color="#fff" />}
+                  </div>
+                  <div style={{ fontSize: 13, color: sel.done ? '#a07050' : '#f0dac8' }}>{t}</div>
                 </div>
-                <div style={{ fontSize: 13, color: sel.done ? '#a07050' : '#f0dac8' }}>{t}</div>
-              </div>
-            ))}
-          </div>
-        )}
-        {sel.type === 'gym' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {['Sentadillas 4x8 80kg', 'Press banca 3x10 70kg', 'Peso muerto 3x6 100kg', 'Trabajo de core 20min', 'Estiramiento 10min'].map((t, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #2a1208' }}>
-                <div style={{ width: 20, height: 20, borderRadius: '50%', background: sel.done ? '#e87a3c' : '#2a1808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {sel.done && <Icon name="check" size={11} color="#fff" />}
+              ))}
+            </div>
+          )}
+          {sel.type === 'gym' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {['Sentadillas 4x8 80kg','Press banca 3x10 70kg','Peso muerto 3x6 100kg','Trabajo de core 20min','Estiramiento 10min'].map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #2a1208' }}>
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: sel.done ? '#e87a3c' : '#2a1808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {sel.done && <Icon name="check" size={11} color="#fff" />}
+                  </div>
+                  <div style={{ fontSize: 13, color: sel.done ? '#a07050' : '#f0dac8' }}>{t}</div>
                 </div>
-                <div style={{ fontSize: 13, color: sel.done ? '#a07050' : '#f0dac8' }}>{t}</div>
-              </div>
-            ))}
-          </div>
-        )}
-        {sel.type === 'tournament' && (
-          <div style={{ textAlign: 'center', padding: '16px 0' }}>
-            <Icon name="trophy" size={40} color="#f0c040" />
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 8 }}>Club Tenis Palermo</div>
-            <div style={{ fontSize: 12, color: '#f0c040', marginTop: 4 }}>Categoría A2 · Singles</div>
-            <div style={{ fontSize: 12, color: '#8a5a3a', marginTop: 4 }}>09:00 hs · Cancha 3</div>
-          </div>
-        )}
-        {sel.type === 'rest' && (
-          <div style={{ textAlign: 'center', padding: '16px 0' }}>
-            <Icon name="moon" size={36} color="#a060d4" />
-            <div style={{ fontSize: 14, color: '#f0dac8', marginTop: 8 }}>Día de recuperación activa</div>
-            <div style={{ fontSize: 12, color: '#8a5a3a' }}>Caminata suave · Stretching · Hidratación</div>
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+          {sel.type === 'tournament' && (
+            <div style={{ textAlign: 'center', padding: '12px 0' }}>
+              <Icon name="trophy" size={36} color="#f0c040" />
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 8 }}>{sel.tournament?.name || sel.label}</div>
+              {sel.tournament?.location && <div style={{ fontSize: 12, color: '#a07030', marginTop: 4 }}>{sel.tournament.location}</div>}
+              {sel.tournament?.category && <div style={{ fontSize: 11, color: '#f0c040', marginTop: 4 }}>Cat. {sel.tournament.category}</div>}
+            </div>
+          )}
+          {sel.type === 'rest' && (
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <Icon name="moon" size={36} color="#a060d4" />
+              <div style={{ fontSize: 14, color: '#f0dac8', marginTop: 8 }}>Día de recuperación activa</div>
+              <div style={{ fontSize: 12, color: '#8a5a3a' }}>Caminata suave · Stretching · Hidratación</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Torneos section */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase' }}>Torneos</div>
+        <button onClick={() => setShowAddTournament(true)} style={{ background: 'rgba(240,192,64,0.15)', border: '1px solid rgba(240,192,64,0.3)', borderRadius: 10, padding: '5px 12px', cursor: 'pointer', color: '#f0c040', fontSize: 12, fontWeight: 700 }}>+ Agregar</button>
       </div>
 
-      {/* Upcoming tournaments */}
-      <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Torneos Próximos</div>
-      {upcoming.map((ev, i) => (
-        <div key={i} style={{ background: '#1a0c05', borderRadius: 12, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12, borderLeft: '3px solid #f0c040' }}>
-          <Icon name="trophy" size={18} color="#f0c040" />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{ev.event}</div>
-            <div style={{ fontSize: 11, color: '#8a5a3a' }}>{ev.date} · Cat. {ev.level}</div>
-          </div>
-          <Icon name="chevronRight" size={16} color="#5a3a22" />
+      {allTournaments.length === 0 ? (
+        <div style={{ background: '#1a0c05', borderRadius: 12, padding: '16px', textAlign: 'center', fontSize: 12, color: '#5a3a22', marginBottom: 8 }}>
+          No hay torneos cargados
         </div>
-      ))}
+      ) : (
+        allTournaments.map((ev) => (
+          <div key={ev.id} style={{ background: '#1a0c05', borderRadius: 12, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12, borderLeft: '3px solid #f0c040' }}>
+            <Icon name="trophy" size={18} color="#f0c040" />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{ev.name}</div>
+              <div style={{ fontSize: 11, color: '#8a5a3a' }}>{ev.date}{ev.location ? ` · ${ev.location}` : ''}{ev.category ? ` · ${ev.category}` : ''}</div>
+            </div>
+            <button onClick={() => deleteTournament(ev.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5a3a22', fontSize: 18, lineHeight: 1, padding: '0 4px' }}>×</button>
+          </div>
+        ))
+      )}
 
+      {/* Plan modal */}
       {planModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }} onClick={() => setPlanModal(false)}>
           <div style={{ background: '#1a0c05', width: '100%', borderRadius: '20px 20px 0 0', padding: 24 }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Planificar día</div>
-            {['Entrenamiento Tenis', 'Entrenamiento Gym', 'Descanso', 'Torneo'].map(op => (
+            {['Entrenamiento Tenis','Entrenamiento Gym','Descanso','Torneo'].map(op => (
               <button key={op} onClick={() => setPlanModal(false)} style={{ display: 'block', width: '100%', background: '#2a1208', border: 'none', borderRadius: 10, padding: '14px 16px', marginBottom: 8, color: '#f0dac8', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}>{op}</button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add tournament modal */}
+      {showAddTournament && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }} onClick={() => setShowAddTournament(false)}>
+          <div style={{ background: '#1a0c05', width: '100%', borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Nuevo Torneo</div>
+            {[
+              { label: 'Nombre',  key: 'name',     placeholder: 'Ej: Torneo Club Palermo', type: 'text' },
+              { label: 'Fecha',   key: 'date',     placeholder: '',                         type: 'date' },
+              { label: 'Lugar',   key: 'location', placeholder: 'Ej: Club Palermo, Cancha 3', type: 'text' },
+              { label: 'Notas',   key: 'notes',    placeholder: 'Opcional...',               type: 'text' },
+            ].map(f => (
+              <div key={f.key} style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>{f.label}</div>
+                <input type={f.type} value={newTournament[f.key]} onChange={e => setNewTournament(prev => ({ ...prev, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder} style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+            ))}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Categoría</div>
+              <select value={newTournament.category} onChange={e => setNewTournament(prev => ({ ...prev, category: e.target.value }))}
+                style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }}>
+                {['Club','Provincial','Nacional','ITF'].map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <button onClick={addTournament} disabled={savingTournament} style={{ width: '100%', background: 'linear-gradient(135deg, #c89010, #f0c040)', border: 'none', borderRadius: 12, padding: 14, color: '#1a0c05', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
+              {savingTournament ? 'Guardando...' : 'Agregar Torneo'}
+            </button>
           </div>
         </div>
       )}

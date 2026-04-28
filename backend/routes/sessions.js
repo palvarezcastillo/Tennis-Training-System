@@ -5,17 +5,24 @@ const router = Router();
 
 const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Database not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in .env' }); return false; } return true; };
 
-// GET /api/sessions/week
-router.get('/week', async (_req, res) => {
+// GET /api/sessions/week?offset=0   (0=current, -1=prev, +1=next)
+router.get('/week', async (req, res) => {
   if (!dbCheck(res)) return;
-  const since = new Date();
-  since.setDate(since.getDate() - 6);
-  const sinceDate = since.toISOString().slice(0, 10);
+  const offset = parseInt(req.query.offset || '0', 10);
+
+  const today = new Date();
+  const dow = today.getDay();
+  const mondayShift = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayShift + offset * 7);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
 
   const { data, error } = await supabase
     .from('sessions')
     .select('*')
-    .gte('date', sinceDate)
+    .gte('date', monday.toISOString().slice(0, 10))
+    .lte('date', sunday.toISOString().slice(0, 10))
     .order('date', { ascending: true });
 
   if (error) return res.status(500).json({ error: error.message });
