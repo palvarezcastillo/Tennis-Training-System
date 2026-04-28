@@ -16,6 +16,10 @@ router.get('/today', async (_req, res) => {
     .eq('date', today)
     .maybeSingle();
 
+  console.log('Buscando fecha:', today);
+  console.log('Data:', JSON.stringify(data));
+  console.log('Error:', JSON.stringify(error));
+
   if (error) return res.status(500).json({ error: error.message });
   return res.json(data || {});
 });
