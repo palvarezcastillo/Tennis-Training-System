@@ -60,8 +60,7 @@ export default function App() {
     return (
       <div style={{ minHeight: '100dvh', background: '#0d0805', fontFamily: FONT }}>
         <div style={{
-          maxWidth: 960, margin: '0 auto', height: '100dvh',
-          display: 'flex', borderInline: '1px solid #2a1208',
+          height: '100dvh', display: 'flex',
         }}>
           {/* Sidebar */}
           <nav style={{
