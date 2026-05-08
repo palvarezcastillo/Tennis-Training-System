@@ -233,6 +233,7 @@ export const CalendarScreen = () => {
   const [showAddTournament, setShowAddTournament] = React.useState(false);
   const [newTournament, setNewTournament] = React.useState({ name: '', date: '', location: '', category: 'Club', notes: '' });
   const [savingTournament, setSavingTournament] = React.useState(false);
+  const [tournamentError, setTournamentError] = React.useState(null);
 
   const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const fmtDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
@@ -311,18 +312,20 @@ export const CalendarScreen = () => {
   const addTournament = () => {
     if (!newTournament.name || !newTournament.date) return;
     setSavingTournament(true);
+    setTournamentError(null);
     fetch('/api/tournaments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTournament),
     })
-      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(r => r.ok ? r.json() : r.json().then(body => Promise.reject(body.error || r.statusText)))
       .then(() => {
         setShowAddTournament(false);
+        setTournamentError(null);
         setNewTournament({ name: '', date: '', location: '', category: 'Club', notes: '' });
         setRefreshKey(k => k + 1);
       })
-      .catch(err => setWeekError(err.toString()))
+      .catch(err => setTournamentError(String(err)))
       .finally(() => setSavingTournament(false));
   };
 
@@ -464,7 +467,7 @@ export const CalendarScreen = () => {
       )}
 
       {showAddTournament && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }} onClick={() => setShowAddTournament(false)}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }} onClick={() => { setShowAddTournament(false); setTournamentError(null); }}>
           <div style={{ background: '#1a0c05', width: '100%', borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Nuevo Torneo</div>
             {[
@@ -486,6 +489,11 @@ export const CalendarScreen = () => {
                 {['Club','Provincial','Nacional','ITF'].map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+            {tournamentError && (
+              <div style={{ background: 'rgba(212,80,26,0.12)', border: '1px solid rgba(212,80,26,0.4)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#e87a3c' }}>
+                Error: {tournamentError}
+              </div>
+            )}
             <button onClick={addTournament} disabled={savingTournament} style={{ width: '100%', background: 'linear-gradient(135deg, #c89010, #f0c040)', border: 'none', borderRadius: 12, padding: 14, color: '#1a0c05', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
               {savingTournament ? 'Guardando...' : 'Agregar Torneo'}
             </button>
