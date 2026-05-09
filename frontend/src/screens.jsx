@@ -237,6 +237,7 @@ export const CalendarScreen = () => {
   const [planForm, setPlanForm] = React.useState({ type: 'tennis', date: '', time: '', duration_min: 60, rpe: 7, notes: '' });
   const [savingPlan, setSavingPlan] = React.useState(false);
   const [planError, setPlanError] = React.useState(null);
+  const [weekSessions, setWeekSessions] = React.useState([]);
 
   const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const fmtDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
@@ -292,6 +293,7 @@ export const CalendarScreen = () => {
         };
       });
       setWeekData(week);
+      setWeekSessions(sessions);
       setWeekError(null);
       if (weekOffset === 0) {
         const todayIdx = week.findIndex(d => d.today);
@@ -363,7 +365,20 @@ export const CalendarScreen = () => {
       .catch(err => setWeekError(err.toString()));
   };
 
+  const toggleDone = (session) => {
+    const newDone = !session.done;
+    setWeekSessions(prev => prev.map(s => s.id === session.id ? { ...s, done: newDone } : s));
+    fetch(`/api/sessions/${session.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done: newDone }),
+    }).catch(() => {
+      setWeekSessions(prev => prev.map(s => s.id === session.id ? { ...s, done: session.done } : s));
+    });
+  };
+
   const sel = weekData[selectedDay] || weekData[0] || {};
+  const daySessions = weekSessions.filter(s => s.date === sel.fullDate);
 
   return (
     <div style={{ padding: '0 16px 20px' }}>
@@ -419,43 +434,45 @@ export const CalendarScreen = () => {
             </button>
           </div>
 
-          {sel.type === 'tennis' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {['Calentamiento 20min','Peloteo de fondo 30min','Trabajo de volea 20min','Saque y resto 15min','Partido de práctica'].map((t, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #2a1208' }}>
-                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: sel.done ? '#d4501a' : '#2a1808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {sel.done && <Icon name="check" size={11} color="#fff" />}
-                  </div>
-                  <div style={{ fontSize: 13, color: sel.done ? '#a07050' : '#f0dac8' }}>{t}</div>
-                </div>
-              ))}
-            </div>
-          )}
-          {sel.type === 'gym' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {['Sentadillas 4x8 80kg','Press banca 3x10 70kg','Peso muerto 3x6 100kg','Trabajo de core 20min','Estiramiento 10min'].map((t, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #2a1208' }}>
-                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: sel.done ? '#e87a3c' : '#2a1808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {sel.done && <Icon name="check" size={11} color="#fff" />}
-                  </div>
-                  <div style={{ fontSize: 13, color: sel.done ? '#a07050' : '#f0dac8' }}>{t}</div>
-                </div>
-              ))}
-            </div>
-          )}
           {sel.type === 'tournament' && (
-            <div style={{ textAlign: 'center', padding: '12px 0' }}>
-              <Icon name="trophy" size={36} color="#f0c040" />
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 8 }}>{sel.tournament?.name || sel.label}</div>
-              {sel.tournament?.location && <div style={{ fontSize: 12, color: '#a07030', marginTop: 4 }}>{sel.tournament.location}</div>}
-              {sel.tournament?.category && <div style={{ fontSize: 11, color: '#f0c040', marginTop: 4 }}>Cat. {sel.tournament.category}</div>}
+            <div style={{ textAlign: 'center', padding: '10px 0', marginBottom: daySessions.length > 0 ? 12 : 0 }}>
+              <Icon name="trophy" size={32} color="#f0c040" />
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 6 }}>{sel.tournament?.name || sel.label}</div>
+              {sel.tournament?.location && <div style={{ fontSize: 12, color: '#a07030', marginTop: 3 }}>{sel.tournament.location}</div>}
+              {sel.tournament?.category && <div style={{ fontSize: 11, color: '#f0c040', marginTop: 3 }}>Cat. {sel.tournament.category}</div>}
             </div>
           )}
-          {sel.type === 'rest' && (
-            <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <Icon name="moon" size={36} color="#a060d4" />
-              <div style={{ fontSize: 14, color: '#f0dac8', marginTop: 8 }}>Día de recuperación activa</div>
-              <div style={{ fontSize: 12, color: '#8a5a3a' }}>Caminata suave · Stretching · Hidratación</div>
+          {daySessions.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '14px 0' }}>
+              <div style={{ fontSize: 13, color: '#5a3a22' }}>Sin actividad planificada</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {daySessions.map(s => {
+                const tc = { tennis: '#d4501a', gym: '#e87a3c', rest: '#a060d4', tournament: '#f0c040' }[s.type] || '#8a5a3a';
+                const tl = { tennis: 'Tenis', gym: 'Gym', rest: 'Descanso', tournament: 'Torneo' }[s.type] || s.type;
+                return (
+                  <div key={s.id} style={{ background: '#2a1208', borderRadius: 12, padding: '12px 14px', borderLeft: `3px solid ${tc}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ background: `${tc}22`, color: tc, fontSize: 10, fontWeight: 700, borderRadius: 6, padding: '2px 7px' }}>{tl}</span>
+                        {s.time && <span style={{ fontSize: 11, color: '#8a5a3a' }}>{s.time}</span>}
+                      </div>
+                      <button onClick={() => toggleDone(s)}
+                        style={{ background: s.done ? 'rgba(80,180,80,0.15)' : 'rgba(212,80,26,0.08)', border: `1px solid ${s.done ? '#4a8a4a' : '#3a1808'}`, borderRadius: 8, padding: '4px 9px', cursor: 'pointer', color: s.done ? '#6aba6a' : '#5a3a22', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                        {s.done ? '✓ Cumplido' : '✗ No cumplido'}
+                      </button>
+                    </div>
+                    {(s.duration_min || s.rpe) && (
+                      <div style={{ display: 'flex', gap: 14, marginBottom: s.notes ? 6 : 0 }}>
+                        {s.duration_min && <span style={{ fontSize: 11, color: '#f0dac8' }}>{s.duration_min} min</span>}
+                        {s.rpe && <span style={{ fontSize: 11, color: '#f0dac8' }}>RPE {s.rpe}/10</span>}
+                      </div>
+                    )}
+                    {s.notes && <div style={{ fontSize: 12, color: '#8a5a3a', fontStyle: 'italic' }}>{s.notes}</div>}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
