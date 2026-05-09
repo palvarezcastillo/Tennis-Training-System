@@ -253,13 +253,14 @@ export const CalendarScreen = () => {
 
   React.useEffect(() => {
     setLoadingWeek(true);
+    const localDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
+    const todayStr = localDate(today);
     const monday = getMonday(weekOffset);
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
-    const monStr = monday.toISOString().slice(0, 10);
-    const sunStr = sunday.toISOString().slice(0, 10);
+    const monStr = localDate(monday);
+    const sunStr = localDate(sunday);
 
     setWeekLabel(`${fmtDate(monday)} – ${fmtDate(sunday)}`);
 
@@ -275,7 +276,7 @@ export const CalendarScreen = () => {
       const week = DAY_NAMES.map((dayName, i) => {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
-        const dateStr = d.toISOString().slice(0, 10);
+        const dateStr = localDate(d);
         const isToday = dateStr === todayStr;
         const session = sessions.find(s => s.date === dateStr);
         const trn = weekTournaments.find(t => t.date === dateStr);
