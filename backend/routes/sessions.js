@@ -10,6 +10,14 @@ router.get('/week', async (req, res) => {
   if (!dbCheck(res)) return;
   const offset = parseInt(req.query.offset || '0', 10);
 
+  // Use local date string (YYYY-MM-DD) to avoid UTC-offset shifting the day
+  const localDate = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const today = new Date();
   const dow = today.getDay();
   const mondayShift = dow === 0 ? -6 : 1 - dow;
@@ -18,14 +26,20 @@ router.get('/week', async (req, res) => {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
 
+  const monStr = localDate(monday);
+  const sunStr = localDate(sunday);
+
+  console.log(`[sessions/week] offset=${offset} rango: ${monStr} → ${sunStr}`);
+
   const { data, error } = await supabase
     .from('sessions')
     .select('*')
-    .gte('date', monday.toISOString().slice(0, 10))
-    .lte('date', sunday.toISOString().slice(0, 10))
+    .gte('date', monStr)
+    .lte('date', sunStr)
     .order('date', { ascending: true });
 
   if (error) return res.status(500).json({ error: error.message });
+  console.log('Sesiones encontradas:', JSON.stringify(data));
   return res.json(data || []);
 });
 

@@ -292,6 +292,7 @@ export const CalendarScreen = () => {
           ...(isToday ? { today: true } : {}),
         };
       });
+      console.log('[weekSessions] recibidas:', JSON.stringify(sessions));
       setWeekData(week);
       setWeekSessions(sessions);
       setWeekError(null);
@@ -379,6 +380,7 @@ export const CalendarScreen = () => {
 
   const sel = weekData[selectedDay] || weekData[0] || {};
   const daySessions = weekSessions.filter(s => s.date === sel.fullDate);
+  console.log('[daySessions] filtrando por', sel.fullDate, '→', daySessions.length, 'sesiones', JSON.stringify(daySessions.map(s => ({ id: s.id, type: s.type, date: s.date, duration_min: s.duration_min, rpe: s.rpe, notes: s.notes, done: s.done }))));
 
   return (
     <div style={{ padding: '0 16px 20px' }}>
@@ -463,12 +465,12 @@ export const CalendarScreen = () => {
                         {s.done ? '✓ Cumplido' : '✗ No cumplido'}
                       </button>
                     </div>
-                    {(s.duration_min || s.rpe) && (
-                      <div style={{ display: 'flex', gap: 14, marginBottom: s.notes ? 6 : 0 }}>
-                        {s.duration_min && <span style={{ fontSize: 11, color: '#f0dac8' }}>{s.duration_min} min</span>}
-                        {s.rpe && <span style={{ fontSize: 11, color: '#f0dac8' }}>RPE {s.rpe}/10</span>}
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: s.notes ? 4 : 0 }}>
+                      <span style={{ fontSize: 10, color: '#5a3a22' }}>{s.date}</span>
+                      {s.duration_min && <span style={{ fontSize: 11, color: '#f0dac8' }}>{s.duration_min} min</span>}
+                      {s.rpe && <span style={{ fontSize: 11, color: '#f0dac8' }}>RPE {s.rpe}/10</span>}
+                      <span style={{ fontSize: 10, color: s.done ? '#6aba6a' : '#5a3a22' }}>{s.done ? 'cumplido' : 'pendiente'}</span>
+                    </div>
                     {s.notes && <div style={{ fontSize: 12, color: '#8a5a3a', fontStyle: 'italic' }}>{s.notes}</div>}
                   </div>
                 );
