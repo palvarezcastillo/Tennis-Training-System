@@ -231,9 +231,12 @@ export const CalendarScreen = () => {
   const [planModal, setPlanModal]     = React.useState(false);
   const [allTournaments, setAllTournaments]   = React.useState([]);
   const [showAddTournament, setShowAddTournament] = React.useState(false);
-  const [newTournament, setNewTournament] = React.useState({ name: '', date: '', location: '', category: 'Club', notes: '' });
+  const [newTournament, setNewTournament] = React.useState({ name: '', date: '', time: '', location: '', category: 'Club', notes: '' });
   const [savingTournament, setSavingTournament] = React.useState(false);
   const [tournamentError, setTournamentError] = React.useState(null);
+  const [planForm, setPlanForm] = React.useState({ type: 'tennis', date: '', time: '', duration_min: 60, rpe: 7, notes: '' });
+  const [savingPlan, setSavingPlan] = React.useState(false);
+  const [planError, setPlanError] = React.useState(null);
 
   const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const fmtDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
@@ -322,11 +325,36 @@ export const CalendarScreen = () => {
       .then(() => {
         setShowAddTournament(false);
         setTournamentError(null);
-        setNewTournament({ name: '', date: '', location: '', category: 'Club', notes: '' });
+        setNewTournament({ name: '', date: '', time: '', location: '', category: 'Club', notes: '' });
         setRefreshKey(k => k + 1);
       })
       .catch(err => setTournamentError(String(err)))
       .finally(() => setSavingTournament(false));
+  };
+
+  const openPlanModal = () => {
+    setPlanForm(f => ({ ...f, date: sel.fullDate || '', time: '' }));
+    setPlanError(null);
+    setPlanModal(true);
+  };
+
+  const savePlan = () => {
+    if (!planForm.date || !planForm.type) return;
+    setSavingPlan(true);
+    setPlanError(null);
+    fetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: planForm.date, type: planForm.type, duration_min: planForm.duration_min, rpe: planForm.rpe, notes: planForm.notes, done: false }),
+    })
+      .then(r => r.ok ? r.json() : r.json().then(body => Promise.reject(body.error || r.statusText)))
+      .then(() => {
+        setPlanModal(false);
+        setPlanError(null);
+        setRefreshKey(k => k + 1);
+      })
+      .catch(err => setPlanError(String(err)))
+      .finally(() => setSavingPlan(false));
   };
 
   const deleteTournament = (id) => {
@@ -386,7 +414,7 @@ export const CalendarScreen = () => {
                 {sel.label}{sel.today && ' • HOY'}
               </div>
             </div>
-            <button onClick={() => setPlanModal(true)} style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', color: '#d4501a', fontSize: 12, fontWeight: 600 }}>
+            <button onClick={openPlanModal} style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', color: '#d4501a', fontSize: 12, fontWeight: 600 }}>
               + Planificar
             </button>
           </div>
@@ -456,12 +484,72 @@ export const CalendarScreen = () => {
       )}
 
       {planModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }} onClick={() => setPlanModal(false)}>
-          <div style={{ background: '#1a0c05', width: '100%', borderRadius: '20px 20px 0 0', padding: 24 }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }} onClick={() => { setPlanModal(false); setPlanError(null); }}>
+          <div style={{ background: '#1a0c05', width: '100%', borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Planificar día</div>
-            {['Entrenamiento Tenis','Entrenamiento Gym','Descanso','Torneo'].map(op => (
-              <button key={op} onClick={() => setPlanModal(false)} style={{ display: 'block', width: '100%', background: '#2a1208', border: 'none', borderRadius: 10, padding: '14px 16px', marginBottom: 8, color: '#f0dac8', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}>{op}</button>
-            ))}
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 6 }}>Tipo</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[
+                  { val: 'tennis', label: 'Tenis', color: '#d4501a' },
+                  { val: 'gym', label: 'Gym', color: '#e87a3c' },
+                  { val: 'rest', label: 'Descanso', color: '#a060d4' },
+                  { val: 'tournament', label: 'Torneo', color: '#f0c040' },
+                ].map(({ val, label, color }) => (
+                  <button key={val} onClick={() => setPlanForm(f => ({ ...f, type: val }))}
+                    style={{ flex: 1, padding: '8px 2px', borderRadius: 10, border: `1px solid ${planForm.type === val ? color : '#3a1808'}`, background: planForm.type === val ? `${color}22` : '#2a1208', color: planForm.type === val ? color : '#5a3a22', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Fecha</div>
+                <input type="date" value={planForm.date} onChange={e => setPlanForm(f => ({ ...f, date: e.target.value }))}
+                  style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Hora</div>
+                <input type="time" value={planForm.time} onChange={e => setPlanForm(f => ({ ...f, time: e.target.value }))}
+                  style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Duración (minutos)</div>
+              <input type="number" min="1" max="480" value={planForm.duration_min} onChange={e => setPlanForm(f => ({ ...f, duration_min: Number(e.target.value) }))}
+                style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 6 }}>RPE — <span style={{ color: '#f0dac8', fontWeight: 700 }}>{planForm.rpe}</span>/10</div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                  <button key={n} onClick={() => setPlanForm(f => ({ ...f, rpe: n }))}
+                    style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', background: planForm.rpe === n ? '#d4501a' : '#2a1208', color: planForm.rpe === n ? '#fff' : '#5a3a22', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Notas</div>
+              <textarea value={planForm.notes} onChange={e => setPlanForm(f => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Opcional..."
+                style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }} />
+            </div>
+
+            {planError && (
+              <div style={{ background: 'rgba(212,80,26,0.12)', border: '1px solid rgba(212,80,26,0.4)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#e87a3c' }}>
+                Error: {planError}
+              </div>
+            )}
+            <button onClick={savePlan} disabled={savingPlan} style={{ width: '100%', background: 'linear-gradient(135deg, #a03010, #d4501a)', border: 'none', borderRadius: 12, padding: 14, color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
+              {savingPlan ? 'Guardando...' : 'Guardar sesión'}
+            </button>
           </div>
         </div>
       )}
@@ -472,9 +560,8 @@ export const CalendarScreen = () => {
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Nuevo Torneo</div>
             {[
               { label: 'Nombre',  key: 'name',     placeholder: 'Ej: Torneo Club Palermo', type: 'text' },
-              { label: 'Fecha',   key: 'date',     placeholder: '',                         type: 'date' },
-              { label: 'Lugar',   key: 'location', placeholder: 'Ej: Club Palermo, Cancha 3', type: 'text' },
               { label: 'Notas',   key: 'notes',    placeholder: 'Opcional...',               type: 'text' },
+              { label: 'Lugar',   key: 'location', placeholder: 'Ej: Club Palermo, Cancha 3', type: 'text' },
             ].map(f => (
               <div key={f.key} style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>{f.label}</div>
@@ -482,6 +569,18 @@ export const CalendarScreen = () => {
                   placeholder={f.placeholder} style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
               </div>
             ))}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Fecha</div>
+                <input type="date" value={newTournament.date} onChange={e => setNewTournament(prev => ({ ...prev, date: e.target.value }))}
+                  style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Hora</div>
+                <input type="time" value={newTournament.time} onChange={e => setNewTournament(prev => ({ ...prev, time: e.target.value }))}
+                  style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+            </div>
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Categoría</div>
               <select value={newTournament.category} onChange={e => setNewTournament(prev => ({ ...prev, category: e.target.value }))}

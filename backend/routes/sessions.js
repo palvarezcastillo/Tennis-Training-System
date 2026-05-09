@@ -32,7 +32,7 @@ router.get('/week', async (req, res) => {
 // POST /api/sessions
 router.post('/', async (req, res) => {
   if (!dbCheck(res)) return;
-  const { date, type, label, intensity, done } = req.body;
+  const { date, type, label, intensity, done, duration_min, rpe, notes } = req.body;
 
   if (!date || !type) {
     return res.status(400).json({ error: 'date and type are required' });
@@ -40,7 +40,7 @@ router.post('/', async (req, res) => {
 
   const { data, error } = await supabase
     .from('sessions')
-    .insert({ date, type, label, intensity: intensity ?? 0, done: done ?? false })
+    .insert({ date, type, label, intensity: intensity ?? 0, done: done ?? false, duration_min, rpe, notes })
     .select()
     .single();
 
