@@ -51,7 +51,7 @@ export const SplashScreen = ({ onEnter }) => {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'linear-gradient(160deg, #0d0805 0%, #1a0c05 50%, #2a1005 100%)',
+      position: 'fixed', inset: 0, background: 'linear-gradient(160deg, #1a0c05 0%, #2a160c 50%, #381e12 100%)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       zIndex: 100, opacity: out ? 0 : 1, transition: 'opacity 0.6s ease', padding: '32px 24px',
     }}>
@@ -159,7 +159,7 @@ export const DashboardScreen = ({ setScreen }) => {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
           {metrics.map(m => (
-            <div key={m.label} style={{ background: '#1a0c05', borderRadius: 14, padding: '12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <div key={m.label} style={{ background: '#2a160c', borderRadius: 14, padding: '12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
               <div style={{ position: 'relative' }}>
                 <RingChart value={m.ring} max={m.max} color={m.color} size={58} strokeWidth={5}>
                   <foreignObject x={8} y={8} width={42} height={42}>
@@ -176,7 +176,7 @@ export const DashboardScreen = ({ setScreen }) => {
         </div>
       )}
 
-      <div style={{ background: '#1a0c05', borderRadius: 14, padding: '14px 16px', marginBottom: 14 }}>
+      <div style={{ background: '#2a160c', borderRadius: 14, padding: '14px 16px', marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Intensidad semana</div>
           <div style={{ fontSize: 11, color: '#8a5a3a' }}>RPE</div>
@@ -197,13 +197,13 @@ export const DashboardScreen = ({ setScreen }) => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <button onClick={() => setScreen('food')} style={{ background: '#1a0c05', border: '1px solid #3a1808', borderRadius: 14, padding: '14px', cursor: 'pointer', textAlign: 'left' }}>
+        <button onClick={() => setScreen('food')} style={{ background: '#2a160c', border: '1px solid #3a1808', borderRadius: 14, padding: '14px', cursor: 'pointer', textAlign: 'left' }}>
           <Icon name="utensils" size={20} color="#e87a3c" />
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginTop: 8 }}>Registrar comida</div>
           <div style={{ fontSize: 11, color: '#8a5a3a' }}>{calories} / 2800 kcal</div>
           <MiniBar value={calories} max={2800} color="#e87a3c" />
         </button>
-        <button onClick={() => setScreen('training')} style={{ background: '#1a0c05', border: '1px solid #3a1808', borderRadius: 14, padding: '14px', cursor: 'pointer', textAlign: 'left' }}>
+        <button onClick={() => setScreen('training')} style={{ background: '#2a160c', border: '1px solid #3a1808', borderRadius: 14, padding: '14px', cursor: 'pointer', textAlign: 'left' }}>
           <Icon name="racket" size={20} color="#d4501a" />
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginTop: 8 }}>Entrenamiento</div>
           <div style={{ fontSize: 11, color: '#8a5a3a' }}>Cancha hoy</div>
@@ -388,9 +388,9 @@ export const CalendarScreen = () => {
       <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 12 }}>Calendario</div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <button onClick={() => setWeekOffset(o => o - 1)} style={{ background: '#1a0c05', border: '1px solid #2a1208', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', color: '#f0dac8', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>‹</button>
+        <button onClick={() => setWeekOffset(o => o - 1)} style={{ background: '#2a160c', border: '1px solid #2a1208', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', color: '#f0dac8', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>‹</button>
         <div style={{ flex: 1, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#f0dac8' }}>{weekLabel}</div>
-        <button onClick={() => setWeekOffset(o => o + 1)} style={{ background: '#1a0c05', border: '1px solid #2a1208', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', color: '#f0dac8', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>›</button>
+        <button onClick={() => setWeekOffset(o => o + 1)} style={{ background: '#2a160c', border: '1px solid #2a1208', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', color: '#f0dac8', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>›</button>
         {weekOffset !== 0 && (
           <button onClick={() => setWeekOffset(0)} style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 10, padding: '6px 10px', cursor: 'pointer', color: '#d4501a', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>Hoy</button>
         )}
@@ -410,7 +410,7 @@ export const CalendarScreen = () => {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {weekData.map((d, i) => (
             <button key={i} onClick={() => setSelectedDay(i)} style={{
-              flex: 1, background: selectedDay === i ? (d.type === 'tournament' ? '#3a2a00' : '#2a1808') : '#1a0c05',
+              flex: 1, background: selectedDay === i ? (d.type === 'tournament' ? '#3a2a00' : '#2a1808') : '#2a160c',
               border: `1px solid ${selectedDay === i ? TYPE_COLOR[d.type] : '#2a1208'}`,
               borderRadius: 12, padding: '8px 2px', cursor: 'pointer',
               outline: d.today ? '2px solid #d4501a' : 'none', outlineOffset: 2,
@@ -424,7 +424,7 @@ export const CalendarScreen = () => {
       )}
 
       {!loadingWeek && (
-        <div style={{ background: '#1a0c05', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+        <div style={{ background: '#2a160c', borderRadius: 16, padding: 16, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div>
               <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{sel.day} {sel.date}</div>
@@ -467,12 +467,12 @@ export const CalendarScreen = () => {
                       </button>
                     </div>
                     <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: s.notes ? 4 : 0 }}>
-                      <span style={{ fontSize: 10, color: '#5a3a22' }}>{s.date}</span>
-                      {s.duration_min && <span style={{ fontSize: 11, color: '#f0dac8' }}>{s.duration_min} min</span>}
-                      {s.rpe && <span style={{ fontSize: 11, color: '#f0dac8' }}>RPE {s.rpe}/10</span>}
+                      <span style={{ fontSize: 10, color: '#f0dac8' }}>{s.date}</span>
+                      {s.duration_min && <span style={{ fontSize: 14, color: '#f0dac8' }}>{s.duration_min} min</span>}
+                      {s.rpe && <span style={{ fontSize: 14, color: '#f0dac8' }}>RPE {s.rpe}/10</span>}
                       <span style={{ fontSize: 10, color: s.done ? '#6aba6a' : '#5a3a22' }}>{s.done ? 'cumplido' : 'pendiente'}</span>
                     </div>
-                    {s.notes && <div style={{ fontSize: 12, color: '#8a5a3a', fontStyle: 'italic' }}>{s.notes}</div>}
+                    {s.notes && <div style={{ fontSize: 16, color: '#f0dac8', fontStyle: 'italic' }}>{s.notes}</div>}
                   </div>
                 );
               })}
@@ -487,12 +487,12 @@ export const CalendarScreen = () => {
       </div>
 
       {allTournaments.length === 0 ? (
-        <div style={{ background: '#1a0c05', borderRadius: 12, padding: '16px', textAlign: 'center', fontSize: 12, color: '#5a3a22', marginBottom: 8 }}>
+        <div style={{ background: '#2a160c', borderRadius: 12, padding: '16px', textAlign: 'center', fontSize: 12, color: '#5a3a22', marginBottom: 8 }}>
           No hay torneos cargados
         </div>
       ) : (
         allTournaments.map((ev) => (
-          <div key={ev.id} style={{ background: '#1a0c05', borderRadius: 12, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12, borderLeft: '3px solid #f0c040' }}>
+          <div key={ev.id} style={{ background: '#2a160c', borderRadius: 12, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12, borderLeft: '3px solid #f0c040' }}>
             <Icon name="trophy" size={18} color="#f0c040" />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{ev.name}</div>
@@ -505,7 +505,7 @@ export const CalendarScreen = () => {
 
       {planModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }} onClick={() => { setPlanModal(false); setPlanError(null); }}>
-          <div style={{ background: '#1a0c05', width: '100%', borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: '#2a160c', width: '100%', borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Planificar día</div>
 
             <div style={{ marginBottom: 14 }}>
@@ -515,7 +515,6 @@ export const CalendarScreen = () => {
                   { val: 'tennis', label: 'Tenis', color: '#d4501a' },
                   { val: 'gym', label: 'Gym', color: '#e87a3c' },
                   { val: 'rest', label: 'Descanso', color: '#a060d4' },
-                  { val: 'tournament', label: 'Torneo', color: '#f0c040' },
                 ].map(({ val, label, color }) => (
                   <button key={val} onClick={() => setPlanForm(f => ({ ...f, type: val }))}
                     style={{ flex: 1, padding: '8px 2px', borderRadius: 10, border: `1px solid ${planForm.type === val ? color : '#3a1808'}`, background: planForm.type === val ? `${color}22` : '#2a1208', color: planForm.type === val ? color : '#5a3a22', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
@@ -576,7 +575,7 @@ export const CalendarScreen = () => {
 
       {showAddTournament && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }} onClick={() => { setShowAddTournament(false); setTournamentError(null); }}>
-          <div style={{ background: '#1a0c05', width: '100%', borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: '#2a160c', width: '100%', borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Nuevo Torneo</div>
             {[
               { label: 'Nombre',  key: 'name',     placeholder: 'Ej: Torneo Club Palermo', type: 'text' },
@@ -625,119 +624,325 @@ export const CalendarScreen = () => {
 
 // ─── TRAINING ─────────────────────────────────────────────────────────────────
 export const TrainingScreen = () => {
-  const [tab, setTab] = React.useState('tennis');
-  const [rpe, setRpe] = React.useState(7);
+  const [weekOffset, setWeekOffset]   = React.useState(0);
+  const [weekData, setWeekData]       = React.useState(WEEK_DATA);
+  const [weekLabel, setWeekLabel]     = React.useState('');
+  const [weekSessions, setWeekSessions] = React.useState([]);
+  const [loadingWeek, setLoadingWeek] = React.useState(true);
+  const [weekError, setWeekError]     = React.useState(null);
+  const [selectedDay, setSelectedDay] = React.useState(() => {
+    const idx = WEEK_DATA.findIndex(d => d.today);
+    return idx >= 0 ? idx : 0;
+  });
   const [checkedItems, setCheckedItems] = React.useState({});
+  const [rpe, setRpe]         = React.useState(7);
+  const [saving, setSaving]   = React.useState(false);
+  const [saveError, setSaveError]     = React.useState(null);
+  const [saveSuccess, setSaveSuccess] = React.useState(false);
 
-  const toggleCheck = (key) => setCheckedItems(prev => ({ ...prev, [key]: !prev[key] }));
+  const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const fmtDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+
+  const getMonday = (offset) => {
+    const today = new Date();
+    const dow = today.getDay();
+    const shift = dow === 0 ? -6 : 1 - dow;
+    const mon = new Date(today);
+    mon.setDate(today.getDate() + shift + offset * 7);
+    return mon;
+  };
+
+  React.useEffect(() => {
+    setLoadingWeek(true);
+    const localDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const today = new Date();
+    const todayStr = localDate(today);
+    const monday = getMonday(weekOffset);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    setWeekLabel(`${fmtDate(monday)} – ${fmtDate(sunday)}`);
+
+    const DAY_NAMES  = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+    const TYPE_LABELS = { gym:'Gym', tennis:'Cancha', rest:'Descanso', tournament:'Torneo' };
+
+    fetch(`/api/sessions/week?offset=${weekOffset}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(sessions => {
+        const week = DAY_NAMES.map((dayName, i) => {
+          const d = new Date(monday);
+          d.setDate(monday.getDate() + i);
+          const dateStr = localDate(d);
+          const isToday = dateStr === todayStr;
+          const session = sessions.find(s => s.date === dateStr);
+          const type = session?.type || 'rest';
+          return {
+            day: dayName,
+            date: String(d.getDate()),
+            fullDate: dateStr,
+            type,
+            label: session?.label || TYPE_LABELS[type] || 'Descanso',
+            done: session?.done ?? false,
+            intensity: session?.intensity ?? 0,
+            ...(isToday ? { today: true } : {}),
+          };
+        });
+        setWeekData(week);
+        setWeekSessions(sessions);
+        setWeekError(null);
+        if (weekOffset === 0) {
+          const todayIdx = week.findIndex(d => d.today);
+          if (todayIdx >= 0) setSelectedDay(todayIdx);
+        } else {
+          setSelectedDay(0);
+        }
+      })
+      .catch(err => {
+        setWeekError(err.toString());
+        if (weekOffset === 0) setWeekData(WEEK_DATA);
+      })
+      .finally(() => setLoadingWeek(false));
+  }, [weekOffset]);
+
+  React.useEffect(() => {
+    setCheckedItems({});
+    setSaveSuccess(false);
+    setSaveError(null);
+  }, [selectedDay, weekOffset]);
+
+  const sel = weekData[selectedDay] || weekData[0] || {};
+  const daySessions   = weekSessions.filter(s => s.date === sel.fullDate);
+  const activeSession = daySessions[0] || null;
 
   const tennisWork = [
-    { key: 't1', label: 'Calentamiento', duration: '20min', detail: 'Trote + movilidad articular' },
-    { key: 't2', label: 'Peloteo de fondo', duration: '30min', detail: 'Cruzado FH/BH — consistencia' },
-    { key: 't3', label: 'Volea y red', duration: '20min', detail: 'Aproximaciones + voleas de definición' },
-    { key: 't4', label: 'Saque', duration: '15min', detail: '60 saques: plano, slice, kick' },
-    { key: 't5', label: 'Partido de práctica', duration: '30min', detail: 'Sets a 6 games — partido real' },
-  ];
-
-  const shotTypes = [
-    { label: 'FH Cruzado', pct: 85 },
-    { label: 'BH Cruzado', pct: 72 },
-    { label: 'Saque Plano', pct: 68 },
-    { label: 'Volea', pct: 55 },
-    { label: 'Resto', pct: 63 },
+    { key: 't1', label: 'Calentamiento',       duration: '20min', detail: 'Trote + movilidad articular' },
+    { key: 't2', label: 'Peloteo de fondo',     duration: '30min', detail: 'Cruzado FH/BH — consistencia' },
+    { key: 't3', label: 'Volea y red',          duration: '20min', detail: 'Aproximaciones + voleas de definición' },
+    { key: 't4', label: 'Saque',                duration: '15min', detail: '60 saques: plano, slice, kick' },
+    { key: 't5', label: 'Partido de práctica',  duration: '30min', detail: 'Sets a 6 games — partido real' },
   ];
 
   const gymExercises = [
-    { key: 'g1', name: 'Sentadillas', sets: '4x8', weight: '80 kg', muscle: 'Piernas' },
-    { key: 'g2', name: 'Press Banca', sets: '3x10', weight: '70 kg', muscle: 'Pecho' },
-    { key: 'g3', name: 'Peso Muerto', sets: '3x6', weight: '100 kg', muscle: 'Posterior' },
-    { key: 'g4', name: 'Remo con Barra', sets: '3x10', weight: '60 kg', muscle: 'Espalda' },
-    { key: 'g5', name: 'Rotación con Cable', sets: '3x15', weight: '20 kg', muscle: 'Core/Tenis' },
-    { key: 'g6', name: 'Plancha', sets: '3x60s', weight: 'Peso corporal', muscle: 'Core' },
+    { key: 'g1', name: 'Sentadillas',        sets: '4x8',  weight: '80 kg',       muscle: 'Piernas' },
+    { key: 'g2', name: 'Press Banca',        sets: '3x10', weight: '70 kg',       muscle: 'Pecho' },
+    { key: 'g3', name: 'Peso Muerto',        sets: '3x6',  weight: '100 kg',      muscle: 'Posterior' },
+    { key: 'g4', name: 'Remo con Barra',     sets: '3x10', weight: '60 kg',       muscle: 'Espalda' },
+    { key: 'g5', name: 'Rotación con Cable', sets: '3x15', weight: '20 kg',       muscle: 'Core/Tenis' },
+    { key: 'g6', name: 'Plancha',            sets: '3x60s', weight: 'Peso corporal', muscle: 'Core' },
   ];
+
+  const toggleCheck = (key) => setCheckedItems(prev => ({ ...prev, [key]: !prev[key] }));
+
+  const completeSession = async () => {
+    if (!activeSession) return;
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    const planItems = activeSession.type === 'tennis' ? tennisWork : gymExercises;
+    const exercises = planItems.map(ex => ({
+      key:  ex.key,
+      name: ex.label || ex.name,
+      done: !!checkedItems[ex.key],
+    }));
+
+    try {
+      const detRes = await fetch('/api/session-details', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: activeSession.id, exercises }),
+      });
+      if (!detRes.ok) throw new Error((await detRes.json()).error || detRes.statusText);
+
+      const sessRes = await fetch(`/api/sessions/${activeSession.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ done: true, rpe }),
+      });
+      if (!sessRes.ok) throw new Error((await sessRes.json()).error || sessRes.statusText);
+
+      setWeekSessions(prev => prev.map(s => s.id === activeSession.id ? { ...s, done: true, rpe } : s));
+      setWeekData(prev => prev.map((d, i) => i === selectedDay ? { ...d, done: true } : d));
+      setSaveSuccess(true);
+    } catch (err) {
+      setSaveError(String(err));
+    }
+    setSaving(false);
+  };
+
+  const accentColor = activeSession?.type === 'gym' ? '#e87a3c' : '#d4501a';
 
   return (
     <div style={{ padding: '0 16px 20px' }}>
-      <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Entrenamiento</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 12 }}>Entrenamiento</div>
 
-      <div style={{ display: 'flex', background: '#1a0c05', borderRadius: 12, padding: 4, marginBottom: 20, gap: 4 }}>
-        {[{ id: 'tennis', label: '🎾 Tenis' }, { id: 'gym', label: '🏋️ Gym' }].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            flex: 1, padding: '10px 0', borderRadius: 10, border: 'none',
-            background: tab === t.id ? 'linear-gradient(135deg, #d4501a, #e87a3c)' : 'transparent',
-            color: tab === t.id ? '#fff' : '#8a5a3a', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-          }}>{t.label}</button>
-        ))}
+      {/* Week navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <button onClick={() => setWeekOffset(o => o - 1)} style={{ background: '#2a160c', border: '1px solid #2a1208', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', color: '#f0dac8', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>‹</button>
+        <div style={{ flex: 1, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#f0dac8' }}>{weekLabel}</div>
+        <button onClick={() => setWeekOffset(o => o + 1)} style={{ background: '#2a160c', border: '1px solid #2a1208', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', color: '#f0dac8', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>›</button>
+        {weekOffset !== 0 && (
+          <button onClick={() => setWeekOffset(0)} style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 10, padding: '6px 10px', cursor: 'pointer', color: '#d4501a', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>Hoy</button>
+        )}
       </div>
 
-      {tab === 'tennis' && (
-        <>
-          <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Plan de sesión</div>
-          {tennisWork.map(item => (
-            <button key={item.key} onClick={() => toggleCheck(item.key)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', background: '#1a0c05', border: `1px solid ${checkedItems[item.key] ? '#d4501a' : '#2a1208'}`, borderRadius: 12, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', textAlign: 'left' }}>
-              <div style={{ width: 24, height: 24, borderRadius: '50%', background: checkedItems[item.key] ? '#d4501a' : '#2a1808', border: `2px solid ${checkedItems[item.key] ? '#d4501a' : '#5a3018'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {checkedItems[item.key] && <Icon name="check" size={12} color="#fff" />}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: checkedItems[item.key] ? '#8a5a3a' : '#fff', textDecoration: checkedItems[item.key] ? 'line-through' : 'none' }}>{item.label}</div>
-                <div style={{ fontSize: 11, color: '#5a3a22' }}>{item.detail}</div>
-              </div>
-              <div style={{ fontSize: 11, color: '#d4501a', fontWeight: 700 }}>{item.duration}</div>
-            </button>
-          ))}
-
-          <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', margin: '16px 0 10px' }}>Calidad de golpes</div>
-          <div style={{ background: '#1a0c05', borderRadius: 14, padding: 14 }}>
-            {shotTypes.map(s => (
-              <div key={s.label} style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <div style={{ fontSize: 12, color: '#f0dac8' }}>{s.label}</div>
-                  <div style={{ fontSize: 12, color: '#d4501a', fontWeight: 700 }}>{s.pct}%</div>
-                </div>
-                <MiniBar value={s.pct} max={100} color={s.pct >= 75 ? '#4caf50' : s.pct >= 55 ? '#e87a3c' : '#d44040'} />
-              </div>
-            ))}
-          </div>
-
-          <div style={{ background: '#1a0c05', borderRadius: 14, padding: 14, marginTop: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Intensidad percibida (RPE)</div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: '#d4501a' }}>{rpe}/10</div>
-            </div>
-            <input type="range" min={1} max={10} value={rpe} onChange={e => setRpe(Number(e.target.value))} style={{ width: '100%', accentColor: '#d4501a' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#5a3a22', marginTop: 4 }}>
-              <span>Muy fácil</span><span>Moderado</span><span>Máximo</span>
-            </div>
-          </div>
-        </>
+      {weekError && (
+        <div style={{ background: 'rgba(212,80,26,0.08)', border: '1px solid rgba(212,80,26,0.25)', borderRadius: 10, padding: '8px 14px', marginBottom: 12, fontSize: 11, color: '#e87a3c' }}>
+          Sin conexión al backend — mostrando datos de ejemplo
+        </div>
       )}
 
-      {tab === 'gym' && (
-        <>
-          <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Rutina del día — Fuerza</div>
-          {gymExercises.map(ex => (
-            <button key={ex.key} onClick={() => toggleCheck(ex.key)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', background: '#1a0c05', border: `1px solid ${checkedItems[ex.key] ? '#e87a3c' : '#2a1208'}`, borderRadius: 12, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', textAlign: 'left' }}>
-              <div style={{ width: 24, height: 24, borderRadius: '50%', background: checkedItems[ex.key] ? '#e87a3c' : '#2a1808', border: `2px solid ${checkedItems[ex.key] ? '#e87a3c' : '#5a3018'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {checkedItems[ex.key] && <Icon name="check" size={12} color="#fff" />}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: checkedItems[ex.key] ? '#8a5a3a' : '#fff' }}>{ex.name}</div>
-                <div style={{ fontSize: 11, color: '#5a3a22' }}>{ex.muscle}</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#e87a3c' }}>{ex.sets}</div>
-                <div style={{ fontSize: 10, color: '#5a3a22' }}>{ex.weight}</div>
-              </div>
+      {/* 7-day row */}
+      {loadingWeek ? (
+        <div style={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: '#5a3a22' }}>Cargando semana...</div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+          {weekData.map((d, i) => (
+            <button key={i} onClick={() => setSelectedDay(i)} style={{
+              flex: 1, background: selectedDay === i ? '#2a1808' : '#2a160c',
+              border: `1px solid ${selectedDay === i ? TYPE_COLOR[d.type] : '#3a1808'}`,
+              borderRadius: 12, padding: '8px 2px', cursor: 'pointer',
+              outline: d.today ? '2px solid #d4501a' : 'none', outlineOffset: 2,
+            }}>
+              <div style={{ fontSize: 9, color: '#8a5a3a', textTransform: 'uppercase', marginBottom: 2 }}>{d.day}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: d.done ? '#4caf50' : '#fff' }}>{d.date}</div>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: d.done ? '#4caf50' : TYPE_COLOR[d.type], margin: '4px auto 0' }} />
             </button>
           ))}
-          <div style={{ background: '#1a0c05', borderRadius: 14, padding: 14, marginTop: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Intensidad (RPE)</div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: '#e87a3c' }}>{rpe}/10</div>
+        </div>
+      )}
+
+      {/* Day detail card */}
+      {!loadingWeek && (
+        <div style={{ background: '#2a160c', borderRadius: 16, padding: 16 }}>
+
+          {/* Day header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{sel.day} {sel.date}</div>
+              <div style={{ fontSize: 12, color: TYPE_COLOR[sel.type] || '#8a5a3a' }}>
+                {sel.label}{sel.today && ' • HOY'}
+              </div>
             </div>
-            <input type="range" min={1} max={10} value={rpe} onChange={e => setRpe(Number(e.target.value))} style={{ width: '100%', accentColor: '#e87a3c' }} />
+            {activeSession && (
+              <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                {activeSession.duration_min && (
+                  <div style={{ fontSize: 12, color: '#f0dac8' }}>{activeSession.duration_min} min</div>
+                )}
+                {activeSession.done && (
+                  <span style={{ fontSize: 10, background: 'rgba(76,175,80,0.2)', color: '#4caf50', padding: '2px 8px', borderRadius: 20 }}>✓ Cumplida</span>
+                )}
+              </div>
+            )}
           </div>
-        </>
+
+          {/* No session */}
+          {!activeSession && (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div style={{ fontSize: 13, color: '#5a3a22' }}>Sin sesión planificada</div>
+              <div style={{ fontSize: 11, color: '#3a2010', marginTop: 4 }}>Planificá desde el Calendario</div>
+            </div>
+          )}
+
+          {/* Rest */}
+          {activeSession?.type === 'rest' && (
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <div style={{ fontSize: 32 }}>😴</div>
+              <div style={{ fontSize: 14, color: '#a060d4', fontWeight: 700, marginTop: 8 }}>Día de Descanso</div>
+              <div style={{ fontSize: 11, color: '#5a3a22', marginTop: 4 }}>Recuperación activa o reposo total</div>
+            </div>
+          )}
+
+          {/* Tournament */}
+          {activeSession?.type === 'tournament' && (
+            <div style={{ textAlign: 'center', padding: '12px 0' }}>
+              <Icon name="trophy" size={32} color="#f0c040" />
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 6 }}>Día de Torneo</div>
+              <div style={{ fontSize: 11, color: '#a07030', marginTop: 3 }}>Llegá 30 min antes · Calentá bien</div>
+            </div>
+          )}
+
+          {/* Tennis plan */}
+          {activeSession?.type === 'tennis' && (
+            <>
+              <div style={{ fontSize: 11, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Plan de sesión</div>
+              {tennisWork.map(item => (
+                <button key={item.key} onClick={() => toggleCheck(item.key)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', background: '#381e12', border: `1px solid ${checkedItems[item.key] ? '#d4501a' : '#3a1808'}`, borderRadius: 12, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', textAlign: 'left' }}>
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: checkedItems[item.key] ? '#d4501a' : '#2a1808', border: `2px solid ${checkedItems[item.key] ? '#d4501a' : '#5a3018'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {checkedItems[item.key] && <Icon name="check" size={12} color="#fff" />}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: checkedItems[item.key] ? '#8a5a3a' : '#fff', textDecoration: checkedItems[item.key] ? 'line-through' : 'none' }}>{item.label}</div>
+                    <div style={{ fontSize: 11, color: '#5a3a22' }}>{item.detail}</div>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#d4501a', fontWeight: 700 }}>{item.duration}</div>
+                </button>
+              ))}
+            </>
+          )}
+
+          {/* Gym plan */}
+          {activeSession?.type === 'gym' && (
+            <>
+              <div style={{ fontSize: 11, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Rutina del día — Fuerza</div>
+              {gymExercises.map(ex => (
+                <button key={ex.key} onClick={() => toggleCheck(ex.key)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', background: '#381e12', border: `1px solid ${checkedItems[ex.key] ? '#e87a3c' : '#3a1808'}`, borderRadius: 12, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', textAlign: 'left' }}>
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: checkedItems[ex.key] ? '#e87a3c' : '#2a1808', border: `2px solid ${checkedItems[ex.key] ? '#e87a3c' : '#5a3018'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {checkedItems[ex.key] && <Icon name="check" size={12} color="#fff" />}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: checkedItems[ex.key] ? '#8a5a3a' : '#fff' }}>{ex.name}</div>
+                    <div style={{ fontSize: 11, color: '#5a3a22' }}>{ex.muscle}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#e87a3c' }}>{ex.sets}</div>
+                    <div style={{ fontSize: 10, color: '#5a3a22' }}>{ex.weight}</div>
+                  </div>
+                </button>
+              ))}
+            </>
+          )}
+
+          {/* RPE + Complete button (tennis or gym, not yet done) */}
+          {activeSession && (activeSession.type === 'tennis' || activeSession.type === 'gym') && !saveSuccess && !activeSession.done && (
+            <>
+              <div style={{ background: '#381e12', borderRadius: 14, padding: 14, marginTop: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Intensidad percibida (RPE)</div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: accentColor }}>{rpe}/10</div>
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                    <button key={n} onClick={() => setRpe(n)}
+                      style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', background: rpe === n ? accentColor : '#2a1208', color: rpe === n ? '#fff' : '#5a3a22', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {saveError && (
+                <div style={{ background: 'rgba(212,80,26,0.12)', border: '1px solid rgba(212,80,26,0.4)', borderRadius: 10, padding: '10px 14px', marginTop: 12, fontSize: 12, color: '#e87a3c' }}>
+                  Error: {saveError}
+                </div>
+              )}
+
+              <button onClick={completeSession} disabled={saving} style={{ width: '100%', background: `linear-gradient(135deg, ${accentColor === '#e87a3c' ? '#a04010, #e87a3c' : '#a03010, #d4501a'})`, border: 'none', borderRadius: 12, padding: 14, color: '#fff', fontSize: 15, fontWeight: 800, cursor: saving ? 'not-allowed' : 'pointer', marginTop: 12, opacity: saving ? 0.7 : 1 }}>
+                {saving ? 'Guardando...' : '✓ Completar sesión'}
+              </button>
+            </>
+          )}
+
+          {/* Success */}
+          {(saveSuccess || (activeSession?.done && !saveSuccess === false)) && saveSuccess && (
+            <div style={{ background: 'rgba(76,175,80,0.12)', border: '1px solid rgba(76,175,80,0.4)', borderRadius: 10, padding: '16px 14px', marginTop: 12, textAlign: 'center' }}>
+              <div style={{ fontSize: 28, marginBottom: 6 }}>🎉</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#4caf50' }}>¡Sesión completada!</div>
+              <div style={{ fontSize: 11, color: '#5a8a5a', marginTop: 4 }}>Guardada en RPE {rpe}/10</div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -815,7 +1020,7 @@ export const FoodScreen = () => {
         </div>
       )}
 
-      <div style={{ background: '#1a0c05', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+      <div style={{ background: '#2a160c', borderRadius: 16, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
           {[
             { label: 'Calorías', val: total.cal, max: targets.cal, unit: 'kcal', color: '#d4501a' },
@@ -846,7 +1051,7 @@ export const FoodScreen = () => {
         <div style={{ textAlign: 'center', padding: 24, fontSize: 13, color: '#5a3a22' }}>No hay comidas registradas hoy</div>
       ) : (
         meals.map((m, i) => (
-          <div key={m.id || i} style={{ background: '#1a0c05', borderRadius: 14, padding: '14px 16px', marginBottom: 10 }}>
+          <div key={m.id || i} style={{ background: '#2a160c', borderRadius: 14, padding: '14px 16px', marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{m.name}</div>
@@ -879,7 +1084,7 @@ export const FoodScreen = () => {
 
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }} onClick={() => setShowAdd(false)}>
-          <div style={{ background: '#1a0c05', width: '100%', borderRadius: '20px 20px 0 0', padding: 24 }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: '#2a160c', width: '100%', borderRadius: '20px 20px 0 0', padding: 24 }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Nueva comida</div>
             {[
               { label: 'Comida',       key: 'name', placeholder: 'Ej: Cena' },
@@ -927,13 +1132,13 @@ export const ProgressScreen = () => {
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {[{ id: 'performance', label: 'Rendimiento' }, { id: 'weight', label: 'Peso' }].map(m => (
-          <button key={m.id} onClick={() => setActiveMetric(m.id)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', background: activeMetric === m.id ? 'rgba(212,80,26,0.2)' : '#1a0c05', color: activeMetric === m.id ? '#d4501a' : '#8a5a3a', fontSize: 13, fontWeight: 700, cursor: 'pointer', borderBottom: activeMetric === m.id ? '2px solid #d4501a' : '2px solid transparent' }}>
+          <button key={m.id} onClick={() => setActiveMetric(m.id)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', background: activeMetric === m.id ? 'rgba(212,80,26,0.2)' : '#2a160c', color: activeMetric === m.id ? '#d4501a' : '#8a5a3a', fontSize: 13, fontWeight: 700, cursor: 'pointer', borderBottom: activeMetric === m.id ? '2px solid #d4501a' : '2px solid transparent' }}>
             {m.label}
           </button>
         ))}
       </div>
 
-      <div style={{ background: '#1a0c05', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+      <div style={{ background: '#2a160c', borderRadius: 16, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', height: 100, gap: 4 }}>
           {(activeMetric === 'weight' ? WEIGHT_DATA : PERFORMANCE_DATA).map((val, i) => {
             const data = activeMetric === 'weight' ? WEIGHT_DATA : PERFORMANCE_DATA;
@@ -964,7 +1169,7 @@ export const ProgressScreen = () => {
           { label: 'Torneos', value: '2', sub: 'jugados', color: '#f0c040' },
           { label: 'Streak', value: '12', sub: 'días seguidos', color: '#4caf50' },
         ].map(s => (
-          <div key={s.label} style={{ background: '#1a0c05', borderRadius: 14, padding: '14px 10px', textAlign: 'center' }}>
+          <div key={s.label} style={{ background: '#2a160c', borderRadius: 14, padding: '14px 10px', textAlign: 'center' }}>
             <div style={{ fontSize: 26, fontWeight: 900, color: s.color }}>{s.value}</div>
             <div style={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>{s.label}</div>
             <div style={{ fontSize: 10, color: '#5a3a22' }}>{s.sub}</div>
@@ -974,7 +1179,7 @@ export const ProgressScreen = () => {
 
       <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Logros</div>
       {achievements.map((a, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#1a0c05', borderRadius: 12, padding: '12px 14px', marginBottom: 8, opacity: a.unlocked ? 1 : 0.4 }}>
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#2a160c', borderRadius: 12, padding: '12px 14px', marginBottom: 8, opacity: a.unlocked ? 1 : 0.4 }}>
           <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${a.color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Icon name={a.icon} size={18} color={a.color} />
           </div>
@@ -1034,7 +1239,7 @@ export const AIScreen = () => {
 
       <div style={{ display: 'flex', gap: 10, overflowX: 'auto', marginBottom: 16, paddingBottom: 4, scrollbarWidth: 'none' }}>
         {recCards.map((c, i) => (
-          <div key={i} onClick={() => setActiveCard(activeCard === i ? null : i)} style={{ flex: '0 0 160px', background: activeCard === i ? '#2a1208' : '#1a0c05', border: `1px solid ${activeCard === i ? c.color : '#2a1208'}`, borderRadius: 14, padding: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
+          <div key={i} onClick={() => setActiveCard(activeCard === i ? null : i)} style={{ flex: '0 0 160px', background: activeCard === i ? '#2a1208' : '#2a160c', border: `1px solid ${activeCard === i ? c.color : '#2a1208'}`, borderRadius: 14, padding: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
             <Icon name={c.icon} size={20} color={c.color} />
             <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', margin: '8px 0 4px' }}>{c.title}</div>
             {activeCard === i && <div style={{ fontSize: 11, color: '#a07050', lineHeight: 1.5 }}>{c.detail}</div>}
@@ -1043,7 +1248,7 @@ export const AIScreen = () => {
         ))}
       </div>
 
-      <div style={{ background: '#1a0c05', borderRadius: 16, padding: 12, marginBottom: 12, flex: 1, minHeight: 220, maxHeight: 280, overflowY: 'auto' }}>
+      <div style={{ background: '#2a160c', borderRadius: 16, padding: 12, marginBottom: 12, flex: 1, minHeight: 220, maxHeight: 280, overflowY: 'auto' }}>
         {messages.map((m, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
             {m.role === 'assistant' && (
@@ -1065,7 +1270,7 @@ export const AIScreen = () => {
 
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 10, scrollbarWidth: 'none' }}>
         {suggestions.map((s, i) => (
-          <button key={i} onClick={() => sendMessage(s.label)} style={{ flex: '0 0 auto', background: '#1a0c05', border: `1px solid ${s.color}20`, borderRadius: 20, padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button key={i} onClick={() => sendMessage(s.label)} style={{ flex: '0 0 auto', background: '#2a160c', border: `1px solid ${s.color}20`, borderRadius: 20, padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name={s.icon} size={12} color={s.color} />
             <span style={{ fontSize: 11, color: '#a07050', whiteSpace: 'nowrap' }}>{s.label}</span>
           </button>
@@ -1074,7 +1279,7 @@ export const AIScreen = () => {
 
       <div style={{ display: 'flex', gap: 8 }}>
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
-          placeholder="Preguntale a tu coach..." style={{ flex: 1, background: '#1a0c05', border: '1px solid #3a1808', borderRadius: 12, padding: '12px 16px', color: '#fff', fontSize: 14 }} />
+          placeholder="Preguntale a tu coach..." style={{ flex: 1, background: '#2a160c', border: '1px solid #3a1808', borderRadius: 12, padding: '12px 16px', color: '#fff', fontSize: 14 }} />
         <button onClick={() => sendMessage(input)} style={{ background: 'linear-gradient(135deg, #d4501a, #e87a3c)', border: 'none', borderRadius: 12, padding: '0 16px', cursor: 'pointer' }}>
           <Icon name="bolt" size={18} color="#fff" />
         </button>

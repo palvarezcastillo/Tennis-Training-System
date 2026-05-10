@@ -6,18 +6,20 @@ const metricsRouter     = require('./routes/metrics');
 const sessionsRouter    = require('./routes/sessions');
 const mealsRouter       = require('./routes/meals');
 const aiCoachRouter     = require('./routes/ai-coach');
-const tournamentsRouter = require('./routes/tournaments');
+const tournamentsRouter     = require('./routes/tournaments');
+const sessionDetailsRouter  = require('./routes/session-details');
 
 const app = express();
 
 app.use(cors({ origin: ['http://localhost', 'http://localhost:3000', 'http://localhost:5173'] }));
 app.use(express.json());
 
-app.use('/api/metrics',     metricsRouter);
-app.use('/api/sessions',    sessionsRouter);
-app.use('/api/meals',       mealsRouter);
-app.use('/api/ai-coach',    aiCoachRouter);
-app.use('/api/tournaments', tournamentsRouter);
+app.use('/api/metrics',         metricsRouter);
+app.use('/api/sessions',        sessionsRouter);
+app.use('/api/meals',           mealsRouter);
+app.use('/api/ai-coach',        aiCoachRouter);
+app.use('/api/tournaments',     tournamentsRouter);
+app.use('/api/session-details', sessionDetailsRouter);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 

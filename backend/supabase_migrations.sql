@@ -43,3 +43,18 @@ alter table sessions enable row level security;
 
 create policy if not exists "Allow all" on sessions
   for all using (true) with check (true);
+
+-- ── session_details ───────────────────────────────────────────────────────────
+create table if not exists session_details (
+  id            uuid primary key default gen_random_uuid(),
+  session_id    uuid references sessions(id) on delete cascade,
+  exercise_key  text not null,
+  exercise_name text not null,
+  done          boolean default false,
+  created_at    timestamptz default now()
+);
+
+alter table session_details enable row level security;
+
+create policy if not exists "Allow all" on session_details
+  for all using (true) with check (true);
