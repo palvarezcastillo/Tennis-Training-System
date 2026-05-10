@@ -949,106 +949,292 @@ export const TrainingScreen = () => {
 };
 
 // ─── FOOD ─────────────────────────────────────────────────────────────────────
+const NUTRITION_PILLARS = [
+  { key: 'hydration',    name: 'Hidratación',      icon: 'drop',   color: '#40a0d4', detail: '2.5 L de agua diaria' },
+  { key: 'carbs',        name: 'Carbohidratos',     icon: 'fire',   color: '#f0a060', detail: 'Fuente de energía principal' },
+  { key: 'protein',      name: 'Proteína',          icon: 'bolt',   color: '#e87a3c', detail: 'Reparación y desarrollo muscular' },
+  { key: 'fiber',        name: 'Fibras',            icon: 'target', color: '#4caf50', detail: 'Salud digestiva' },
+  { key: 'supplements',  name: 'Suplementos',       icon: 'heart',  color: '#a060d4', detail: 'Vitaminas, minerales, omega-3' },
+  { key: 'healthy_fats', name: 'Grasas saludables', icon: 'star',   color: '#f0c040', detail: 'Palta, frutos secos, aceite de oliva' },
+];
+
 export const FoodScreen = () => {
+  // ── week navigation ──
+  const [weekOffset, setWeekOffset]     = React.useState(0);
+  const [weekData, setWeekData]         = React.useState(WEEK_DATA);
+  const [weekLabel, setWeekLabel]       = React.useState('');
+  const [weekNutrition, setWeekNutrition] = React.useState([]);
+  const [loadingWeek, setLoadingWeek]   = React.useState(true);
+  const [weekError, setWeekError]       = React.useState(null);
+  const [selectedDay, setSelectedDay]   = React.useState(() => {
+    const idx = WEEK_DATA.findIndex(d => d.today);
+    return idx >= 0 ? idx : 0;
+  });
+
+  // ── pillars state for selected day ──
+  const [pillarsState, setPillarsState]             = React.useState({});
+  const [initialPillarsState, setInitialPillarsState] = React.useState({});
+  const [saving, setSaving]         = React.useState(false);
+  const [saveError, setSaveError]   = React.useState(null);
+  const [saveSuccess, setSaveSuccess] = React.useState(false);
+
+  // ── meals (today only) ──
   const [meals, setMeals]     = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError]     = React.useState(null);
+  const [mealsLoading, setMealsLoading] = React.useState(true);
+  const [mealsError, setMealsError]     = React.useState(null);
   const [showAdd, setShowAdd] = React.useState(false);
   const [newMeal, setNewMeal] = React.useState({ name: 'Merienda', items: '', cal: '', p: '', c: '', g: '' });
 
-  const fetchMeals = () => {
-    setLoading(true);
+  const MONTHS   = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const fmtDate  = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  const localDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+  const getMonday = (offset) => {
+    const today = new Date();
+    const dow   = today.getDay();
+    const shift = dow === 0 ? -6 : 1 - dow;
+    const mon   = new Date(today);
+    mon.setDate(today.getDate() + shift + offset * 7);
+    return mon;
+  };
+
+  // fetch week dates + nutrition records
+  React.useEffect(() => {
+    setLoadingWeek(true);
+    const today   = new Date();
+    const todayStr = localDate(today);
+    const monday  = getMonday(weekOffset);
+    const sunday  = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const monStr  = localDate(monday);
+    const sunStr  = localDate(sunday);
+    setWeekLabel(`${fmtDate(monday)} – ${fmtDate(sunday)}`);
+
+    const DAY_NAMES = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+    const week = DAY_NAMES.map((dayName, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const dateStr = localDate(d);
+      return { day: dayName, date: String(d.getDate()), fullDate: dateStr, today: dateStr === todayStr };
+    });
+
+    fetch(`/api/nutrition?from=${monStr}&to=${sunStr}`)
+      .then(r => r.ok ? r.json() : [])
+      .catch(() => [])
+      .then(nutrition => {
+        setWeekData(week);
+        setWeekNutrition(nutrition);
+        setWeekError(null);
+        if (weekOffset === 0) {
+          const todayIdx = week.findIndex(d => d.today);
+          if (todayIdx >= 0) setSelectedDay(todayIdx);
+        } else {
+          setSelectedDay(0);
+        }
+      })
+      .catch(err => setWeekError(err.toString()))
+      .finally(() => setLoadingWeek(false));
+  }, [weekOffset]);
+
+  // derive pillar state when day or nutrition data changes
+  React.useEffect(() => {
+    const sel = weekData[selectedDay] || {};
+    const dayRecs = weekNutrition.filter(n => n.date === sel.fullDate);
+    const state = {};
+    NUTRITION_PILLARS.forEach(p => {
+      const rec = dayRecs.find(n => n.pillar === p.key);
+      state[p.key] = rec?.done ?? false;
+    });
+    setPillarsState(state);
+    setInitialPillarsState(state);
+    setSaveSuccess(false);
+    setSaveError(null);
+  }, [selectedDay, weekOffset, weekNutrition]);
+
+  // fetch today's meals once
+  React.useEffect(() => {
     fetch('/api/meals/today')
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
-      .then(data => { setMeals(data); setError(null); })
-      .catch(err => setError(err.toString()))
-      .finally(() => setLoading(false));
+      .then(data => { setMeals(data); setMealsError(null); })
+      .catch(err => setMealsError(err.toString()))
+      .finally(() => setMealsLoading(false));
+  }, []);
+
+  const togglePillar = (key) => {
+    setPillarsState(prev => ({ ...prev, [key]: !prev[key] }));
+    setSaveSuccess(false);
   };
 
-  React.useEffect(() => { fetchMeals(); }, []);
+  const hasChanges = NUTRITION_PILLARS.some(p => pillarsState[p.key] !== initialPillarsState[p.key]);
 
-  const p = m => m.protein ?? m.p ?? 0;
-  const c = m => m.carbs   ?? m.c ?? 0;
-  const g = m => m.fat     ?? m.g ?? 0;
+  const getDayDoneCount = (fullDate) =>
+    weekNutrition.filter(n => n.date === fullDate && n.done).length;
 
-  const total = {
-    cal: meals.reduce((s, m) => s + (m.cal || 0), 0),
-    p:   meals.reduce((s, m) => s + p(m), 0),
-    c:   meals.reduce((s, m) => s + c(m), 0),
-    g:   meals.reduce((s, m) => s + g(m), 0),
+  const saveNutrition = async () => {
+    const sel = weekData[selectedDay] || {};
+    if (!sel.fullDate) return;
+    setSaving(true);
+    setSaveError(null);
+    const pillars = NUTRITION_PILLARS.map(p => ({ key: p.key, name: p.name, done: pillarsState[p.key] ?? false }));
+    try {
+      const res = await fetch('/api/nutrition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: sel.fullDate, pillars }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+      setInitialPillarsState({ ...pillarsState });
+      setSaveSuccess(true);
+      setWeekNutrition(prev => [
+        ...prev.filter(n => n.date !== sel.fullDate),
+        ...pillars.map(p => ({ date: sel.fullDate, pillar: p.key, pillar_name: p.name, done: p.done })),
+      ]);
+    } catch (err) {
+      setSaveError(String(err));
+    }
+    setSaving(false);
   };
-  const targets = { cal: 2800, p: 180, c: 320, g: 80 };
 
   const addMeal = () => {
     if (!newMeal.items) return;
     fetch('/api/meals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name:    newMeal.name,
-        items:   newMeal.items,
-        cal:     +newMeal.cal || 300,
-        protein: +newMeal.p   || 20,
-        carbs:   +newMeal.c   || 40,
-        fat:     +newMeal.g   || 8,
-      }),
+      body: JSON.stringify({ name: newMeal.name, items: newMeal.items, cal: +newMeal.cal || 300, protein: +newMeal.p || 20, carbs: +newMeal.c || 40, fat: +newMeal.g || 8 }),
     })
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
-      .then(() => {
-        fetchMeals();
-        setShowAdd(false);
-        setNewMeal({ name: 'Cena', items: '', cal: '', p: '', c: '', g: '' });
-      })
-      .catch(err => setError(err.toString()));
+      .then(() => fetch('/api/meals/today').then(r => r.json()))
+      .then(data => { setMeals(data); setShowAdd(false); setNewMeal({ name: 'Cena', items: '', cal: '', p: '', c: '', g: '' }); })
+      .catch(err => setMealsError(err.toString()));
   };
+
+  const sel = weekData[selectedDay] || {};
+  const donePillars = NUTRITION_PILLARS.filter(p => pillarsState[p.key]).length;
+  const pm = m => m.protein ?? m.p ?? 0;
+  const cm = m => m.carbs   ?? m.c ?? 0;
+  const gm = m => m.fat     ?? m.g ?? 0;
 
   return (
     <div style={{ padding: '0 16px 20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>Nutrición</div>
-          <div style={{ fontSize: 12, color: '#8a5a3a' }}>Viernes 24 Abril</div>
-        </div>
-        <button onClick={() => setShowAdd(true)} style={{ background: 'linear-gradient(135deg, #d4501a, #e87a3c)', border: 'none', borderRadius: 12, padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: '#fff', fontSize: 13, fontWeight: 700 }}>
-          <Icon name="plus" size={16} color="#fff" /> Agregar
-        </button>
+      <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 12 }}>Nutrición</div>
+
+      {/* Week navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <button onClick={() => setWeekOffset(o => o - 1)} style={{ background: '#2a160c', border: '1px solid #2a1208', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', color: '#f0dac8', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>‹</button>
+        <div style={{ flex: 1, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#f0dac8' }}>{weekLabel}</div>
+        <button onClick={() => setWeekOffset(o => o + 1)} style={{ background: '#2a160c', border: '1px solid #2a1208', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', color: '#f0dac8', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>›</button>
+        {weekOffset !== 0 && (
+          <button onClick={() => setWeekOffset(0)} style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 10, padding: '6px 10px', cursor: 'pointer', color: '#d4501a', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>Hoy</button>
+        )}
       </div>
 
-      {error && (
+      {weekError && (
         <div style={{ background: 'rgba(212,80,26,0.08)', border: '1px solid rgba(212,80,26,0.25)', borderRadius: 10, padding: '8px 14px', marginBottom: 12, fontSize: 11, color: '#e87a3c' }}>
-          Sin conexión al backend — verificá que el servidor esté corriendo
+          Sin conexión al backend
         </div>
       )}
 
-      <div style={{ background: '#2a160c', borderRadius: 16, padding: 16, marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-          {[
-            { label: 'Calorías', val: total.cal, max: targets.cal, unit: 'kcal', color: '#d4501a' },
-            { label: 'Proteína', val: total.p,   max: targets.p,   unit: 'g',    color: '#e87a3c' },
-            { label: 'Carbs',    val: total.c,   max: targets.c,   unit: 'g',    color: '#f0a060' },
-            { label: 'Grasas',   val: total.g,   max: targets.g,   unit: 'g',    color: '#a060d4' },
-          ].map(m => (
-            <div key={m.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <div style={{ position: 'relative' }}>
-                <RingChart value={m.val} max={m.max} color={m.color} size={64} strokeWidth={6}>
-                  <text x="32" y="36" textAnchor="middle" style={{ fill: '#fff', fontSize: 11, fontWeight: 800 }}>{Math.round((m.val / m.max) * 100)}%</text>
-                </RingChart>
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: m.color }}>{m.val}<span style={{ fontSize: 9, color: '#5a3a22' }}>{m.unit}</span></div>
-              <div style={{ fontSize: 10, color: '#5a3a22' }}>{m.label}</div>
+      {/* 7-day row */}
+      {loadingWeek ? (
+        <div style={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: '#5a3a22' }}>Cargando semana...</div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+          {weekData.map((d, i) => {
+            const done     = getDayDoneCount(d.fullDate);
+            const complete = done === NUTRITION_PILLARS.length;
+            const partial  = done > 0 && !complete;
+            return (
+              <button key={i} onClick={() => setSelectedDay(i)} style={{
+                flex: 1, background: selectedDay === i ? '#2a1808' : '#2a160c',
+                border: `1px solid ${selectedDay === i ? (complete ? '#4caf50' : '#d4501a') : '#3a1808'}`,
+                borderRadius: 12, padding: '8px 2px', cursor: 'pointer',
+                outline: d.today ? '2px solid #d4501a' : 'none', outlineOffset: 2,
+              }}>
+                <div style={{ fontSize: 9, color: '#8a5a3a', textTransform: 'uppercase', marginBottom: 2 }}>{d.day}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: complete ? '#4caf50' : '#fff' }}>{d.date}</div>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: complete ? '#4caf50' : partial ? '#f0a060' : '#3a1808', margin: '4px auto 0' }} />
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pillars card */}
+      {!loadingWeek && (
+        <div style={{ background: '#2a160c', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{sel.day} {sel.date}</div>
+              <div style={{ fontSize: 12, color: '#8a5a3a' }}>Pilares de nutrición</div>
             </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: donePillars === NUTRITION_PILLARS.length ? '#4caf50' : '#d4501a' }}>
+                {donePillars}<span style={{ fontSize: 13, color: '#5a3a22', fontWeight: 400 }}>/{NUTRITION_PILLARS.length}</span>
+              </div>
+              <div style={{ fontSize: 10, color: '#5a3a22' }}>cumplidos</div>
+            </div>
+          </div>
+
+          {NUTRITION_PILLARS.map(p => (
+            <button key={p.key} onClick={() => togglePillar(p.key)} style={{
+              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+              background: '#381e12',
+              border: `1px solid ${pillarsState[p.key] ? p.color : '#3a1808'}`,
+              borderRadius: 12, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', textAlign: 'left',
+            }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: pillarsState[p.key] ? `${p.color}28` : '#2a1208', border: `2px solid ${pillarsState[p.key] ? p.color : '#5a3018'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name={p.icon} size={16} color={pillarsState[p.key] ? p.color : '#5a3a22'} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: pillarsState[p.key] ? p.color : '#fff' }}>{p.name}</div>
+                <div style={{ fontSize: 11, color: '#5a3a22' }}>{p.detail}</div>
+              </div>
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: pillarsState[p.key] ? p.color : '#2a1208', border: `2px solid ${pillarsState[p.key] ? p.color : '#5a3018'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {pillarsState[p.key] && <Icon name="check" size={12} color="#fff" />}
+              </div>
+            </button>
           ))}
+
+          {hasChanges && (
+            <>
+              {saveError && (
+                <div style={{ background: 'rgba(212,80,26,0.12)', border: '1px solid rgba(212,80,26,0.4)', borderRadius: 10, padding: '10px 14px', marginBottom: 10, fontSize: 12, color: '#e87a3c' }}>
+                  Error: {saveError}
+                </div>
+              )}
+              <button onClick={saveNutrition} disabled={saving} style={{ width: '100%', background: 'linear-gradient(135deg, #a03010, #d4501a)', border: 'none', borderRadius: 12, padding: 14, color: '#fff', fontSize: 15, fontWeight: 800, cursor: saving ? 'not-allowed' : 'pointer', marginTop: 4, opacity: saving ? 0.7 : 1 }}>
+                {saving ? 'Guardando...' : '✓ Guardar nutrición del día'}
+              </button>
+            </>
+          )}
+
+          {saveSuccess && !hasChanges && (
+            <div style={{ background: 'rgba(76,175,80,0.12)', border: '1px solid rgba(76,175,80,0.4)', borderRadius: 10, padding: '12px 14px', marginTop: 8, textAlign: 'center' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#4caf50' }}>✓ Guardado</div>
+              <div style={{ fontSize: 11, color: '#5a8a5a', marginTop: 2 }}>{donePillars} de {NUTRITION_PILLARS.length} pilares cumplidos</div>
+            </div>
+          )}
         </div>
-        <div style={{ marginTop: 12, fontSize: 11, color: '#8a5a3a', textAlign: 'center' }}>
-          Faltan {targets.cal - total.cal} kcal para tu objetivo diario
-        </div>
+      )}
+
+      {/* Meals section (today only) */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase' }}>Comidas de hoy</div>
+        <button onClick={() => setShowAdd(true)} style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 10, padding: '5px 12px', cursor: 'pointer', color: '#d4501a', fontSize: 12, fontWeight: 700 }}>+ Agregar</button>
       </div>
 
-      <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Comidas del día</div>
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: 24, fontSize: 13, color: '#5a3a22' }}>Cargando comidas...</div>
+      {mealsError && (
+        <div style={{ background: 'rgba(212,80,26,0.08)', border: '1px solid rgba(212,80,26,0.25)', borderRadius: 10, padding: '8px 14px', marginBottom: 10, fontSize: 11, color: '#e87a3c' }}>
+          Sin conexión al backend
+        </div>
+      )}
+
+      {mealsLoading ? (
+        <div style={{ textAlign: 'center', padding: 20, fontSize: 13, color: '#5a3a22' }}>Cargando comidas...</div>
       ) : meals.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 24, fontSize: 13, color: '#5a3a22' }}>No hay comidas registradas hoy</div>
+        <div style={{ background: '#2a160c', borderRadius: 12, padding: '16px', textAlign: 'center', fontSize: 12, color: '#5a3a22', marginBottom: 8 }}>No hay comidas registradas hoy</div>
       ) : (
         meals.map((m, i) => (
           <div key={m.id || i} style={{ background: '#2a160c', borderRadius: 14, padding: '14px 16px', marginBottom: 10 }}>
@@ -1063,7 +1249,7 @@ export const FoodScreen = () => {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              {[{ l: 'P', v: p(m), col: '#e87a3c' }, { l: 'C', v: c(m), col: '#f0a060' }, { l: 'G', v: g(m), col: '#a060d4' }].map(mc => (
+              {[{ l: 'P', v: pm(m), col: '#e87a3c' }, { l: 'C', v: cm(m), col: '#f0a060' }, { l: 'G', v: gm(m), col: '#a060d4' }].map(mc => (
                 <div key={mc.l} style={{ flex: 1, background: '#2a1208', borderRadius: 8, padding: '4px 0', textAlign: 'center' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: mc.col }}>{mc.v}g</div>
                   <div style={{ fontSize: 9, color: '#5a3a22' }}>{mc.l}</div>
@@ -1074,20 +1260,12 @@ export const FoodScreen = () => {
         ))
       )}
 
-      <div style={{ background: 'rgba(240,192,64,0.08)', border: '1px solid rgba(240,192,64,0.2)', borderRadius: 14, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 4 }}>
-        <Icon name="trophy" size={18} color="#f0c040" />
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f0c040', marginBottom: 2 }}>Torneo mañana</div>
-          <div style={{ fontSize: 11, color: '#a07030' }}>Asegurate de cargar bien carbohidratos en la cena de hoy. Hidratación óptima: 2.5–3L de agua.</div>
-        </div>
-      </div>
-
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }} onClick={() => setShowAdd(false)}>
           <div style={{ background: '#2a160c', width: '100%', borderRadius: '20px 20px 0 0', padding: 24 }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Nueva comida</div>
             {[
-              { label: 'Comida',       key: 'name', placeholder: 'Ej: Cena' },
+              { label: 'Comida',       key: 'name',  placeholder: 'Ej: Cena' },
               { label: 'Alimentos',    key: 'items', placeholder: 'Ej: Pasta + pollo + verduras' },
               { label: 'Calorías',     key: 'cal',   placeholder: '500' },
               { label: 'Proteína (g)', key: 'p',     placeholder: '40' },

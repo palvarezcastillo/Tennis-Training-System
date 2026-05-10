@@ -58,3 +58,19 @@ alter table session_details enable row level security;
 
 create policy if not exists "Allow all" on session_details
   for all using (true) with check (true);
+
+-- ── nutrition ─────────────────────────────────────────────────────────────────
+create table if not exists nutrition (
+  id          uuid primary key default gen_random_uuid(),
+  date        date not null,
+  pillar      text not null,
+  pillar_name text not null,
+  done        boolean default false,
+  notes       text,
+  created_at  timestamptz default now()
+);
+
+alter table nutrition enable row level security;
+
+create policy if not exists "Allow all" on nutrition
+  for all using (true) with check (true);
