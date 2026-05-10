@@ -904,8 +904,8 @@ export const TrainingScreen = () => {
             </>
           )}
 
-          {/* RPE + Complete button (tennis or gym, not yet done) */}
-          {activeSession && (activeSession.type === 'tennis' || activeSession.type === 'gym') && !saveSuccess && !activeSession.done && (
+          {/* RPE + Complete button — shown only after at least one exercise is checked */}
+          {activeSession && (activeSession.type === 'tennis' || activeSession.type === 'gym') && !saveSuccess && !activeSession.done && Object.values(checkedItems).some(Boolean) && (
             <>
               <div style={{ background: '#381e12', borderRadius: 14, padding: 14, marginTop: 4 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
