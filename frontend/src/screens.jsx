@@ -102,7 +102,7 @@ export const DashboardScreen = ({ setScreen }) => {
   const [metricsError, setMetricsError] = React.useState(null);
 
   React.useEffect(() => {
-    fetch('/api/metrics/today')
+    fetch(`${import.meta.env.VITE_API_URL}/api/metrics/today`)
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
       .then(data => setApiMetrics(data))
       .catch(err => setMetricsError(err.toString()))
@@ -268,9 +268,9 @@ export const CalendarScreen = () => {
     const TYPE_LABELS = { gym:'Gym', tennis:'Cancha', rest:'Descanso', tournament:'Torneo' };
 
     Promise.all([
-      fetch(`/api/sessions/week?offset=${weekOffset}`)
+      fetch(`${import.meta.env.VITE_API_URL}/api/sessions/week?offset=${weekOffset}`)
         .then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
-      fetch(`/api/tournaments?from=${monStr}&to=${sunStr}`)
+      fetch(`${import.meta.env.VITE_API_URL}/api/tournaments?from=${monStr}&to=${sunStr}`)
         .then(r => r.ok ? r.json() : []),
     ]).then(([sessions, weekTournaments]) => {
       const week = DAY_NAMES.map((dayName, i) => {
@@ -326,7 +326,7 @@ export const CalendarScreen = () => {
   }, [weekOffset, refreshKey]);
 
   React.useEffect(() => {
-    fetch('/api/tournaments')
+    fetch(`${import.meta.env.VITE_API_URL}/api/tournaments`)
       .then(r => r.ok ? r.json() : [])
       .then(data => setAllTournaments(data))
       .catch(() => {});
@@ -336,7 +336,7 @@ export const CalendarScreen = () => {
     if (!newTournament.name || !newTournament.date) return;
     setSavingTournament(true);
     setTournamentError(null);
-    fetch('/api/tournaments', {
+    fetch(`${import.meta.env.VITE_API_URL}/api/tournaments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTournament),
@@ -362,7 +362,7 @@ export const CalendarScreen = () => {
     if (!planForm.date || !planForm.type) return;
     setSavingPlan(true);
     setPlanError(null);
-    fetch('/api/sessions', {
+    fetch(`${import.meta.env.VITE_API_URL}/api/sessions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date: planForm.date, type: planForm.type, duration_min: planForm.duration_min, rpe: planForm.rpe, notes: planForm.notes, done: false }),
@@ -378,7 +378,7 @@ export const CalendarScreen = () => {
   };
 
   const deleteTournament = (id) => {
-    fetch(`/api/tournaments/${id}`, { method: 'DELETE' })
+    fetch(`${import.meta.env.VITE_API_URL}/api/tournaments/${id}`, { method: 'DELETE' })
       .then(() => setRefreshKey(k => k + 1))
       .catch(err => setWeekError(err.toString()));
   };
@@ -386,7 +386,7 @@ export const CalendarScreen = () => {
   const toggleDone = (session) => {
     const newDone = !session.done;
     setWeekSessions(prev => prev.map(s => s.id === session.id ? { ...s, done: newDone } : s));
-    fetch(`/api/sessions/${session.id}`, {
+    fetch(`${import.meta.env.VITE_API_URL}/api/sessions/${session.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ done: newDone }),
@@ -681,7 +681,7 @@ export const TrainingScreen = () => {
     const DAY_NAMES  = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
     const TYPE_LABELS = { gym:'Gym', tennis:'Cancha', rest:'Descanso', tournament:'Torneo' };
 
-    fetch(`/api/sessions/week?offset=${weekOffset}`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/sessions/week?offset=${weekOffset}`)
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
       .then(sessions => {
         const week = DAY_NAMES.map((dayName, i) => {
@@ -762,14 +762,14 @@ export const TrainingScreen = () => {
     }));
 
     try {
-      const detRes = await fetch('/api/session-details', {
+      const detRes = await fetch(`${import.meta.env.VITE_API_URL}/api/session-details`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: activeSession.id, exercises }),
       });
       if (!detRes.ok) throw new Error((await detRes.json()).error || detRes.statusText);
 
-      const sessRes = await fetch(`/api/sessions/${activeSession.id}`, {
+      const sessRes = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ done: true, rpe }),
@@ -1034,7 +1034,7 @@ export const FoodScreen = () => {
       return { day: dayName, date: String(d.getDate()), fullDate: dateStr, today: dateStr === todayStr };
     });
 
-    fetch(`/api/nutrition?from=${monStr}&to=${sunStr}`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/nutrition?from=${monStr}&to=${sunStr}`)
       .then(r => r.ok ? r.json() : [])
       .catch(() => [])
       .then(nutrition => {
@@ -1069,7 +1069,7 @@ export const FoodScreen = () => {
 
   // fetch today's meals once
   React.useEffect(() => {
-    fetch('/api/meals/today')
+    fetch(`${import.meta.env.VITE_API_URL}/api/meals/today`)
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
       .then(data => { setMeals(data); setMealsError(null); })
       .catch(err => setMealsError(err.toString()))
@@ -1093,7 +1093,7 @@ export const FoodScreen = () => {
     setSaveError(null);
     const pillars = NUTRITION_PILLARS.map(p => ({ key: p.key, name: p.name, done: pillarsState[p.key] ?? false }));
     try {
-      const res = await fetch('/api/nutrition', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/nutrition`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: sel.fullDate, pillars }),
@@ -1113,13 +1113,13 @@ export const FoodScreen = () => {
 
   const addMeal = () => {
     if (!newMeal.items) return;
-    fetch('/api/meals', {
+    fetch(`${import.meta.env.VITE_API_URL}/api/meals`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newMeal.name, items: newMeal.items, cal: +newMeal.cal || 300, protein: +newMeal.p || 20, carbs: +newMeal.c || 40, fat: +newMeal.g || 8 }),
     })
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
-      .then(() => fetch('/api/meals/today').then(r => r.json()))
+      .then(() => fetch(`${import.meta.env.VITE_API_URL}/api/meals/today`).then(r => r.json()))
       .then(data => { setMeals(data); setShowAdd(false); setNewMeal({ name: 'Cena', items: '', cal: '', p: '', c: '', g: '' }); })
       .catch(err => setMealsError(err.toString()));
   };
@@ -1407,7 +1407,7 @@ export const AIScreen = () => {
     setInput('');
     setLoading(true);
     try {
-      const res = await fetch('/api/coach', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/coach`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
