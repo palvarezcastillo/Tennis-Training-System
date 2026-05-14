@@ -31,4 +31,8 @@ app.use((err, _req, res, _next) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`MIRA backend running on port ${PORT}`));
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => console.log(`MIRA backend running on port ${PORT}`));
+}
+
+module.exports = app;
