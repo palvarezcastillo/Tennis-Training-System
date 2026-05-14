@@ -305,7 +305,23 @@ export const CalendarScreen = () => {
       }
     }).catch(err => {
       setWeekError(err.toString());
-      if (weekOffset === 0) setWeekData(WEEK_DATA);
+      const fallbackWeek = DAY_NAMES.map((dayName, i) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        const dateStr = localDate(d);
+        return {
+          day: dayName, date: String(d.getDate()), fullDate: dateStr,
+          type: 'rest', label: 'Descanso', done: false, intensity: 0, tournament: null,
+          ...(dateStr === todayStr ? { today: true } : {}),
+        };
+      });
+      setWeekData(fallbackWeek);
+      if (weekOffset === 0) {
+        const todayIdx = fallbackWeek.findIndex(d => d.today);
+        if (todayIdx >= 0) setSelectedDay(todayIdx);
+      } else {
+        setSelectedDay(0);
+      }
     }).finally(() => setLoadingWeek(false));
   }, [weekOffset, refreshKey]);
 
