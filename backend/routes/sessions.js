@@ -5,6 +5,18 @@ const router = Router();
 
 const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Database not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in .env' }); return false; } return true; };
 
+// GET /api/sessions?from=YYYY-MM-DD&to=YYYY-MM-DD
+router.get('/', async (req, res) => {
+  if (!dbCheck(res)) return;
+  const { from, to } = req.query;
+  let query = supabase.from('sessions').select('*').order('date', { ascending: true });
+  if (from) query = query.gte('date', from);
+  if (to)   query = query.lte('date', to);
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data || []);
+});
+
 // GET /api/sessions/week?offset=0   (0=current, -1=prev, +1=next)
 router.get('/week', async (req, res) => {
   if (!dbCheck(res)) return;

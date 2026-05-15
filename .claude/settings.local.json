@@ -8,7 +8,8 @@
       "Bash(Select-Object FullName)",
       "Bash(ConvertTo-Csv -NoTypeInformation)",
       "Bash(Out-String)",
-      "Bash(grep -n \"fetch\\('/api/\\\\|fetch\\(\\\\`/api/\" \"C:/Users/DELL/Tennis-Training-System/frontend/src/screens.jsx\")"
+      "Bash(grep -n \"fetch\\('/api/\\\\|fetch\\(\\\\`/api/\" \"C:/Users/DELL/Tennis-Training-System/frontend/src/screens.jsx\")",
+      "Bash(git commit *)"
     ]
   }
 }

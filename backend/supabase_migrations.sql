@@ -59,6 +59,25 @@ alter table session_details enable row level security;
 create policy if not exists "Allow all" on session_details
   for all using (true) with check (true);
 
+-- ── profiles ─────────────────────────────────────────────────────────────────
+create table if not exists profiles (
+  id         uuid primary key default gen_random_uuid(),
+  name       text,
+  birth_date date,
+  height_cm  int,
+  weight_kg  numeric(5,2),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table profiles enable row level security;
+
+create policy if not exists "Allow all" on profiles
+  for all using (true) with check (true);
+
+-- ── meals: add sleep_hours ────────────────────────────────────────────────────
+alter table meals add column if not exists sleep_hours numeric(4,2);
+
 -- ── nutrition ─────────────────────────────────────────────────────────────────
 create table if not exists nutrition (
   id          uuid primary key default gen_random_uuid(),
