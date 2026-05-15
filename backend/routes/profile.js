@@ -12,7 +12,7 @@ const dbCheck = (res) => {
 router.get('/', async (_req, res) => {
   if (!dbCheck(res)) return;
   const { data, error } = await supabase
-    .from('profiles')
+    .from('profile')
     .select('*')
     .limit(1)
     .maybeSingle();
@@ -32,13 +32,13 @@ router.put('/', async (req, res) => {
   if (birth_date !== undefined) updates.birth_date = birth_date;
   updates.updated_at = new Date().toISOString();
 
-  const { data: existing } = await supabase.from('profiles').select('id').limit(1).maybeSingle();
+  const { data: existing } = await supabase.from('profile').select('id').limit(1).maybeSingle();
 
   let result;
   if (existing) {
-    result = await supabase.from('profiles').update(updates).eq('id', existing.id).select().single();
+    result = await supabase.from('profile').update(updates).eq('id', existing.id).select().single();
   } else {
-    result = await supabase.from('profiles').insert(updates).select().single();
+    result = await supabase.from('profile').insert(updates).select().single();
   }
 
   if (result.error) return res.status(500).json({ error: result.error.message });
