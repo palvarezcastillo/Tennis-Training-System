@@ -97,121 +97,243 @@ export const SplashScreen = ({ onEnter }) => {
 
 // ─── DASHBOARD ─────────────────────────────────────────────────────────────────
 export const DashboardScreen = ({ setScreen }) => {
-  const [apiMetrics, setApiMetrics] = React.useState(null);
+  const [metrics, setMetrics]             = React.useState(null);
   const [loadingMetrics, setLoadingMetrics] = React.useState(true);
-  const [metricsError, setMetricsError] = React.useState(null);
+  const [weekSessions, setWeekSessions]   = React.useState([]);
+  const [loadingWeek, setLoadingWeek]     = React.useState(true);
+  const [nextTournament, setNextTournament] = React.useState(null);
+
+  const localDate = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
   React.useEffect(() => {
+    const todayStr = localDate(new Date());
+
     fetch(`${import.meta.env.VITE_API_URL}/api/metrics/today`)
-      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
-      .then(data => setApiMetrics(data))
-      .catch(err => setMetricsError(err.toString()))
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setMetrics(data))
+      .catch(() => setMetrics(null))
       .finally(() => setLoadingMetrics(false));
+
+    fetch(`${import.meta.env.VITE_API_URL}/api/sessions/week?offset=0`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setWeekSessions(Array.isArray(data) ? data : []))
+      .catch(() => setWeekSessions([]))
+      .finally(() => setLoadingWeek(false));
+
+    fetch(`${import.meta.env.VITE_API_URL}/api/tournaments?from=${todayStr}`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setNextTournament(Array.isArray(data) && data.length > 0 ? data[0] : null))
+      .catch(() => setNextTournament(null));
   }, []);
 
-  const weight     = apiMetrics?.weight       ?? 81.7;
-  const calories   = apiMetrics?.calories     ?? 1420;
-  const protein    = apiMetrics?.protein      ?? 95;
-  const sleepHours = apiMetrics?.sleep_hours  ?? 7.5;
-  const heartRate  = apiMetrics?.heart_rate   ?? 58;
-  const water      = apiMetrics?.water_liters ?? 2.1;
+  // ── Date helpers ──────────────────────────────────────────────────────────
+  const today       = new Date();
+  const todayStr    = localDate(today);
+  const DAY_NAMES   = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const dateLabel   = `${DAY_NAMES[today.getDay()]} ${today.getDate()} ${MONTH_NAMES[today.getMonth()]}`;
 
-  const metrics = [
-    { label: "Peso",      value: weight,     unit: "kg",   icon: "target", color: "#e87a3c", ring: weight,     max: 90   },
-    { label: "Calorías",  value: calories,   unit: "kcal", icon: "fire",   color: "#d4501a", ring: calories,   max: 2800 },
-    { label: "Proteína",  value: protein,    unit: "g",    icon: "bolt",   color: "#f0a060", ring: protein,    max: 180  },
-    { label: "Sueño",     value: sleepHours, unit: "h",    icon: "moon",   color: "#a060d4", ring: sleepHours, max: 9    },
-    { label: "FC Reposo", value: heartRate,  unit: "bpm",  icon: "heart",  color: "#e04060", ring: heartRate,  max: 80   },
-    { label: "Agua",      value: water,      unit: "L",    icon: "drop",   color: "#40a0d4", ring: water,      max: 3    },
+  // ── Type maps ─────────────────────────────────────────────────────────────
+  const T_COLOR = { gym: '#e87a3c', tennis: '#d4501a', rest: '#8a5a3a', tournament: '#f0c040' };
+  const T_LABEL = { gym: 'Gym', tennis: 'Cancha', rest: 'Descanso', tournament: 'Torneo' };
+  const T_ICON  = { gym: 'bolt', tennis: 'racket', rest: 'moon', tournament: 'trophy' };
+
+  // ── Today's session ───────────────────────────────────────────────────────
+  const todaySession = weekSessions.find(s => s.date === todayStr) || null;
+
+  // ── Week grid (Mon–Sun) ───────────────────────────────────────────────────
+  const getMonday = () => {
+    const d = new Date(today);
+    const dow = d.getDay();
+    d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
+    return d;
+  };
+  const DAY_ABBR = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const monday   = getMonday();
+  const weekDays = DAY_ABBR.map((abbr, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const ds      = localDate(d);
+    const session = weekSessions.find(s => s.date === ds);
+    return {
+      abbr,
+      isToday: ds === todayStr,
+      done:    session?.done ?? false,
+      rpe:     session?.rpe ?? session?.intensity ?? 0,
+      type:    session?.type || 'rest',
+    };
+  });
+
+  const doneSessions = weekDays.filter(d => d.done).length;
+
+  const streak = (() => {
+    const todayIdx = weekDays.findIndex(d => d.isToday);
+    let count = 0;
+    for (let i = (todayIdx < 0 ? weekDays.length - 1 : todayIdx) - 1; i >= 0; i--) {
+      if (weekDays[i].done) count++; else break;
+    }
+    return count;
+  })();
+
+  // ── Tournament days remaining ─────────────────────────────────────────────
+  const daysUntil = nextTournament
+    ? Math.round((new Date(nextTournament.date + 'T00:00:00') - new Date(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000)
+    : null;
+
+  // ── Metrics ───────────────────────────────────────────────────────────────
+  const calories = metrics?.calories ?? null;
+  const metricsList = [
+    { label: 'Peso',      value: metrics?.weight,       unit: 'kg',   icon: 'target', color: '#e87a3c', max: 90   },
+    { label: 'Calorías',  value: calories,               unit: 'kcal', icon: 'fire',   color: '#d4501a', max: 2800 },
+    { label: 'Proteína',  value: metrics?.protein,       unit: 'g',    icon: 'bolt',   color: '#f0a060', max: 180  },
+    { label: 'Sueño',     value: metrics?.sleep_hours,   unit: 'h',    icon: 'moon',   color: '#a060d4', max: 9    },
+    { label: 'FC Reposo', value: metrics?.heart_rate,    unit: 'bpm',  icon: 'heart',  color: '#e04060', max: 80   },
+    { label: 'Agua',      value: metrics?.water_liters,  unit: 'L',    icon: 'drop',   color: '#40a0d4', max: 3    },
   ];
 
   return (
     <div style={{ padding: '0 16px 20px' }}>
+
+      {/* ── CABECERA ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 1, textTransform: 'uppercase' }}>Viernes 24 Abril</div>
+          <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 1, textTransform: 'uppercase' }}>{dateLabel}</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>¡Hola, Mira! 👋</div>
-          <div style={{ fontSize: 13, color: '#d4501a' }}>Hoy: Entrenamiento en Cancha</div>
+          {loadingWeek ? (
+            <div style={{ fontSize: 13, color: '#5a3a22' }}>Cargando sesión...</div>
+          ) : todaySession ? (
+            <div style={{ fontSize: 13, color: T_COLOR[todaySession.type] || '#d4501a' }}>
+              Hoy: {T_LABEL[todaySession.type] || todaySession.label}
+              {' — '}
+              <span style={{ color: todaySession.done ? '#4caf50' : '#d4501a' }}>
+                {todaySession.done ? '✓ Cumplida' : 'Pendiente'}
+              </span>
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: '#5a3a22' }}>Sin sesión planificada hoy</div>
+          )}
         </div>
         <TennisPlayer size={60} color="#d4501a" opacity={0.9} />
       </div>
 
-      <div style={{ background: 'linear-gradient(135deg, #3a2008, #2a1208)', border: '1px solid #f0c040', borderRadius: 14, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Icon name="trophy" size={22} color="#f0c040" />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: '#f0c040', textTransform: 'uppercase', letterSpacing: 1 }}>Próximo Torneo</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Club Tenis Palermo — Sábado 25 Abr</div>
-        </div>
-        <div style={{ fontSize: 24, fontWeight: 900, color: '#f0c040' }}>1</div>
-        <div style={{ fontSize: 10, color: '#a07030' }}>día</div>
-      </div>
-
-      <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Métricas del día</div>
-      {metricsError && (
-        <div style={{ background: 'rgba(212,80,26,0.08)', border: '1px solid rgba(212,80,26,0.25)', borderRadius: 10, padding: '8px 14px', marginBottom: 12, fontSize: 11, color: '#e87a3c' }}>
-          Sin conexión al backend — mostrando datos de ejemplo
+      {/* ── BANNER PRÓXIMO TORNEO ── */}
+      {nextTournament && (
+        <div style={{ background: 'linear-gradient(135deg, #3a2008, #2a1208)', border: '1px solid #f0c040', borderRadius: 14, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Icon name="trophy" size={22} color="#f0c040" />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, color: '#f0c040', textTransform: 'uppercase', letterSpacing: 1 }}>Próximo Torneo</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{nextTournament.name}</div>
+            {nextTournament.location && <div style={{ fontSize: 11, color: '#a07030' }}>{nextTournament.location}</div>}
+          </div>
+          <div style={{ textAlign: 'center', minWidth: 32 }}>
+            <div style={{ fontSize: 26, fontWeight: 900, color: '#f0c040', lineHeight: 1 }}>{daysUntil}</div>
+            <div style={{ fontSize: 10, color: '#a07030' }}>{daysUntil === 1 ? 'día' : 'días'}</div>
+          </div>
         </div>
       )}
+
+      {/* ── MÉTRICAS DEL DÍA ── */}
+      <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Métricas del día</div>
       {loadingMetrics ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 120, marginBottom: 20 }}>
           <div style={{ fontSize: 13, color: '#5a3a22' }}>Cargando métricas...</div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
-          {metrics.map(m => (
+          {metricsList.map(m => (
             <div key={m.label} style={{ background: '#2a160c', borderRadius: 14, padding: '12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <div style={{ position: 'relative' }}>
-                <RingChart value={m.ring} max={m.max} color={m.color} size={58} strokeWidth={5}>
-                  <foreignObject x={8} y={8} width={42} height={42}>
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name={m.icon} size={16} color={m.color} />
-                    </div>
-                  </foreignObject>
-                </RingChart>
+              <RingChart value={m.value ?? 0} max={m.max} color={m.color} size={58} strokeWidth={5}>
+                <foreignObject x={8} y={8} width={42} height={42}>
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name={m.icon} size={16} color={m.color} />
+                  </div>
+                </foreignObject>
+              </RingChart>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', lineHeight: 1 }}>
+                {m.value != null ? m.value : '--'}
+                {m.value != null && <span style={{ fontSize: 9, color: '#8a5a3a', fontWeight: 400, marginLeft: 1 }}>{m.unit}</span>}
               </div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{m.value}<span style={{ fontSize: 9, color: '#8a5a3a', fontWeight: 400, marginLeft: 1 }}>{m.unit}</span></div>
               <div style={{ fontSize: 10, color: '#8a5a3a' }}>{m.label}</div>
             </div>
           ))}
         </div>
       )}
 
+      {/* ── RESUMEN SEMANA ── */}
       <div style={{ background: '#2a160c', borderRadius: 14, padding: '14px 16px', marginBottom: 14 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Intensidad semana</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Resumen semana</div>
+            <div style={{ fontSize: 11, color: '#8a5a3a' }}>
+              {doneSessions}/7 sesiones cumplidas
+              {streak > 0 && <span style={{ color: '#d4501a' }}> · 🔥 {streak} día{streak !== 1 ? 's' : ''} seguido{streak !== 1 ? 's' : ''}</span>}
+            </div>
+          </div>
           <div style={{ fontSize: 11, color: '#8a5a3a' }}>RPE</div>
         </div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 48 }}>
-          {WEEK_DATA.map((d, i) => {
-            const h = d.intensity > 0 ? (d.intensity / 10) * 44 : 4;
-            return (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                <div style={{ width: '100%', height: 44, display: 'flex', alignItems: 'flex-end' }}>
-                  <div style={{ width: '100%', height: h, background: d.today ? '#d4501a' : (d.done ? '#5a3018' : '#2a1808'), borderRadius: 3, transition: 'height 0.5s ease' }} />
+        {loadingWeek ? (
+          <div style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: 11, color: '#5a3a22' }}>Cargando...</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 48 }}>
+            {weekDays.map((d, i) => {
+              const h        = d.rpe > 0 ? (d.rpe / 10) * 44 : 4;
+              const barColor = d.isToday ? '#d4501a' : d.done ? (T_COLOR[d.type] || '#5a3018') : '#2a1808';
+              return (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{ width: '100%', height: 44, display: 'flex', alignItems: 'flex-end' }}>
+                    <div style={{ width: '100%', height: h, background: barColor, borderRadius: 3, transition: 'height 0.5s ease' }} />
+                  </div>
+                  <div style={{ fontSize: 9, color: d.isToday ? '#d4501a' : '#5a3018' }}>{d.abbr}</div>
                 </div>
-                <div style={{ fontSize: 9, color: d.today ? '#d4501a' : '#5a3018' }}>{d.day}</div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
+      {/* ── ACCESOS RÁPIDOS ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <button onClick={() => setScreen('food')} style={{ background: '#2a160c', border: '1px solid #3a1808', borderRadius: 14, padding: '14px', cursor: 'pointer', textAlign: 'left' }}>
+        <button onClick={() => setScreen('food')} style={{ background: '#2a160c', border: '1px solid #3a1808', borderRadius: 14, padding: 14, cursor: 'pointer', textAlign: 'left' }}>
           <Icon name="utensils" size={20} color="#e87a3c" />
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginTop: 8 }}>Registrar comida</div>
-          <div style={{ fontSize: 11, color: '#8a5a3a' }}>{calories} / 2800 kcal</div>
-          <MiniBar value={calories} max={2800} color="#e87a3c" />
+          <div style={{ fontSize: 11, color: '#8a5a3a' }}>{calories != null ? `${calories} / 2800 kcal` : '-- / 2800 kcal'}</div>
+          <MiniBar value={calories ?? 0} max={2800} color="#e87a3c" />
         </button>
-        <button onClick={() => setScreen('training')} style={{ background: '#2a160c', border: '1px solid #3a1808', borderRadius: 14, padding: '14px', cursor: 'pointer', textAlign: 'left' }}>
-          <Icon name="racket" size={20} color="#d4501a" />
+
+        <button onClick={() => setScreen('training')} style={{ background: '#2a160c', border: '1px solid #3a1808', borderRadius: 14, padding: 14, cursor: 'pointer', textAlign: 'left' }}>
+          <Icon name={todaySession ? T_ICON[todaySession.type] || 'racket' : 'racket'} size={20} color={todaySession ? T_COLOR[todaySession.type] || '#d4501a' : '#d4501a'} />
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginTop: 8 }}>Entrenamiento</div>
-          <div style={{ fontSize: 11, color: '#8a5a3a' }}>Cancha hoy</div>
-          <div style={{ marginTop: 6 }}>
-            <span style={{ fontSize: 10, background: 'rgba(212,80,26,0.2)', color: '#d4501a', padding: '2px 8px', borderRadius: 20 }}>Pendiente</span>
-          </div>
+          {todaySession ? (
+            <>
+              <div style={{ fontSize: 11, color: '#8a5a3a' }}>{T_LABEL[todaySession.type] || todaySession.label} hoy</div>
+              <div style={{ marginTop: 6 }}>
+                <span style={{ fontSize: 10, background: todaySession.done ? 'rgba(76,175,80,0.2)' : 'rgba(212,80,26,0.2)', color: todaySession.done ? '#4caf50' : '#d4501a', padding: '2px 8px', borderRadius: 20 }}>
+                  {todaySession.done ? '✓ Cumplida' : 'Pendiente'}
+                </span>
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 11, color: '#5a3a22', marginTop: 4 }}>Sin sesión hoy</div>
+          )}
         </button>
       </div>
+
+      {nextTournament && (
+        <button onClick={() => setScreen('calendar')} style={{ width: '100%', background: '#2a160c', border: '1px solid rgba(240,192,64,0.25)', borderRadius: 14, padding: 14, cursor: 'pointer', textAlign: 'left', marginTop: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Icon name="trophy" size={20} color="#f0c040" />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Próximo torneo</div>
+            <div style={{ fontSize: 11, color: '#8a5a3a' }}>{nextTournament.name}{nextTournament.location ? ` · ${nextTournament.location}` : ''}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#f0c040', lineHeight: 1 }}>{daysUntil}</div>
+            <div style={{ fontSize: 10, color: '#a07030' }}>{daysUntil === 1 ? 'día' : 'días'}</div>
+          </div>
+        </button>
+      )}
     </div>
   );
 };
