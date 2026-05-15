@@ -12,7 +12,15 @@ const nutritionRouter       = require('./routes/nutrition');
 
 const app = express();
 
-app.use(cors({ origin: ['http://localhost', 'http://localhost:3000', 'http://localhost:5173'] }));
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://tennis-training-system.vercel.app'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 app.use('/api/metrics',         metricsRouter);
