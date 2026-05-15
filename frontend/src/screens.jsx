@@ -856,13 +856,43 @@ export const TrainingScreen = () => {
           {/* No session */}
           {!activeSession && (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontSize: 13, color: '#5a3a22' }}>Sin sesión planificada</div>
-              <div style={{ fontSize: 11, color: '#3a2010', marginTop: 4 }}>Planificá desde el Calendario</div>
+              <div style={{ fontSize: 13, color: '#5a3a22', marginBottom: 12 }}>Sin sesión planificada</div>
+              <button style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.35)', borderRadius: 12, padding: '10px 20px', cursor: 'pointer', color: '#d4501a', fontSize: 13, fontWeight: 700 }}>
+                + Planificar sesión
+              </button>
             </div>
           )}
 
+          {/* Done summary — shown when session is already completed */}
+          {activeSession?.done && (() => {
+            const TYPE_LABEL = { tennis: 'Tenis / Cancha', gym: 'Gimnasio', rest: 'Descanso', tournament: 'Torneo' };
+            const Row = ({ label, value, color }) => (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10, borderBottom: '1px solid #2a1808', marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: '#8a5a3a' }}>{label}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: color || '#f0dac8' }}>{value}</span>
+              </div>
+            );
+            return (
+              <div style={{ background: '#1e1208', borderRadius: 14, padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                  <span style={{ fontSize: 20, fontWeight: 900, color: '#4caf50' }}>✓ Cumplido</span>
+                </div>
+                <Row label="Tipo" value={TYPE_LABEL[activeSession.type] || activeSession.type} color={TYPE_COLOR[activeSession.type]} />
+                <Row label="Fecha" value={activeSession.date} />
+                {activeSession.duration_min ? <Row label="Duración" value={`${activeSession.duration_min} min`} /> : null}
+                {activeSession.rpe ? <Row label="RPE" value={`${activeSession.rpe}/10`} color="#d4501a" /> : null}
+                {activeSession.notes && (
+                  <div>
+                    <div style={{ fontSize: 12, color: '#8a5a3a', marginBottom: 6 }}>Notas</div>
+                    <div style={{ fontSize: 12, color: '#f0dac8', background: '#2a1808', borderRadius: 8, padding: '8px 12px' }}>{activeSession.notes}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Rest */}
-          {activeSession?.type === 'rest' && (
+          {activeSession?.type === 'rest' && !activeSession.done && (
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
               <div style={{ fontSize: 32 }}>😴</div>
               <div style={{ fontSize: 14, color: '#a060d4', fontWeight: 700, marginTop: 8 }}>Día de Descanso</div>
@@ -871,7 +901,7 @@ export const TrainingScreen = () => {
           )}
 
           {/* Tournament */}
-          {activeSession?.type === 'tournament' && (
+          {activeSession?.type === 'tournament' && !activeSession.done && (
             <div style={{ textAlign: 'center', padding: '12px 0' }}>
               <Icon name="trophy" size={32} color="#f0c040" />
               <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 6 }}>Día de Torneo</div>
@@ -880,7 +910,7 @@ export const TrainingScreen = () => {
           )}
 
           {/* Tennis plan */}
-          {activeSession?.type === 'tennis' && (
+          {activeSession?.type === 'tennis' && !activeSession.done && (
             <>
               <div style={{ fontSize: 11, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Plan de sesión</div>
               {tennisWork.map(item => (
@@ -899,7 +929,7 @@ export const TrainingScreen = () => {
           )}
 
           {/* Gym plan */}
-          {activeSession?.type === 'gym' && (
+          {activeSession?.type === 'gym' && !activeSession.done && (
             <>
               <div style={{ fontSize: 11, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Rutina del día — Fuerza</div>
               {gymExercises.map(ex => (
