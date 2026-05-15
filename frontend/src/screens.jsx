@@ -655,6 +655,8 @@ export const TrainingScreen = () => {
   const [saving, setSaving]   = React.useState(false);
   const [saveError, setSaveError]     = React.useState(null);
   const [saveSuccess, setSaveSuccess] = React.useState(false);
+  const [unmarking, setUnmarking]     = React.useState(false);
+  const [unmarkError, setUnmarkError] = React.useState(null);
 
   const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const fmtDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
@@ -723,6 +725,7 @@ export const TrainingScreen = () => {
     setCheckedItems({});
     setSaveSuccess(false);
     setSaveError(null);
+    setUnmarkError(null);
   }, [selectedDay, weekOffset]);
 
   const sel = weekData[selectedDay] || weekData[0] || {};
@@ -783,6 +786,25 @@ export const TrainingScreen = () => {
       setSaveError(String(err));
     }
     setSaving(false);
+  };
+
+  const unmarkSession = async () => {
+    if (!activeSession) return;
+    setUnmarking(true);
+    setUnmarkError(null);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ done: false }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+      setWeekSessions(prev => prev.map(s => s.id === activeSession.id ? { ...s, done: false } : s));
+      setWeekData(prev => prev.map((d, i) => i === selectedDay ? { ...d, done: false } : d));
+    } catch (err) {
+      setUnmarkError(String(err));
+    }
+    setUnmarking(false);
   };
 
   const accentColor = activeSession?.type === 'gym' ? '#e87a3c' : '#d4501a';
@@ -866,28 +888,104 @@ export const TrainingScreen = () => {
           {/* Done summary — shown when session is already completed */}
           {activeSession?.done && (() => {
             const TYPE_LABEL = { tennis: 'Tenis / Cancha', gym: 'Gimnasio', rest: 'Descanso', tournament: 'Torneo' };
-            const Row = ({ label, value, color }) => (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10, borderBottom: '1px solid #2a1808', marginBottom: 10 }}>
-                <span style={{ fontSize: 12, color: '#8a5a3a' }}>{label}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: color || '#f0dac8' }}>{value}</span>
-              </div>
-            );
+            const TYPE_EMOJI = { tennis: '🎾', gym: '🏋️', rest: '😴', tournament: '🏆' };
             return (
-              <div style={{ background: '#1e1208', borderRadius: 14, padding: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                  <span style={{ fontSize: 20, fontWeight: 900, color: '#4caf50' }}>✓ Cumplido</span>
+              <>
+                {/* CABECERA */}
+                <div style={{ background: 'rgba(76,175,80,0.07)', border: '1px solid rgba(76,175,80,0.22)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 42, height: 42, borderRadius: 12, background: `${TYPE_COLOR[activeSession.type]}1a`, border: `1px solid ${TYPE_COLOR[activeSession.type]}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                        {TYPE_EMOJI[activeSession.type]}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{TYPE_LABEL[activeSession.type] || activeSession.type}</div>
+                        <div style={{ fontSize: 11, color: '#8a5a3a' }}>{activeSession.date}</div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 11, background: 'rgba(76,175,80,0.2)', color: '#4caf50', padding: '4px 10px', borderRadius: 20, fontWeight: 700, whiteSpace: 'nowrap' }}>✓ Cumplido</span>
+                  </div>
+
+                  {(activeSession.duration_min || activeSession.rpe) && (
+                    <div style={{ display: 'flex', gap: 8, marginBottom: activeSession.notes ? 12 : 0 }}>
+                      {activeSession.duration_min && (
+                        <div style={{ flex: 1, background: '#2a1808', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: 18, fontWeight: 900, color: '#f0dac8' }}>{activeSession.duration_min}</div>
+                          <div style={{ fontSize: 10, color: '#5a3a22', marginTop: 2 }}>minutos</div>
+                        </div>
+                      )}
+                      {activeSession.rpe && (
+                        <div style={{ flex: 1, background: '#2a1808', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: 18, fontWeight: 900, color: '#d4501a' }}>{activeSession.rpe}<span style={{ fontSize: 11, color: '#5a3a22' }}>/10</span></div>
+                          <div style={{ fontSize: 10, color: '#5a3a22', marginTop: 2 }}>RPE</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {activeSession.notes && (
+                    <div style={{ marginTop: 2 }}>
+                      <div style={{ fontSize: 10, color: '#5a3a22', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 5 }}>Notas</div>
+                      <div style={{ fontSize: 12, color: '#f0dac8', background: '#2a1808', borderRadius: 8, padding: '8px 12px', lineHeight: 1.5 }}>{activeSession.notes}</div>
+                    </div>
+                  )}
                 </div>
-                <Row label="Tipo" value={TYPE_LABEL[activeSession.type] || activeSession.type} color={TYPE_COLOR[activeSession.type]} />
-                <Row label="Fecha" value={activeSession.date} />
-                {activeSession.duration_min ? <Row label="Duración" value={`${activeSession.duration_min} min`} /> : null}
-                {activeSession.rpe ? <Row label="RPE" value={`${activeSession.rpe}/10`} color="#d4501a" /> : null}
-                {activeSession.notes && (
-                  <div>
-                    <div style={{ fontSize: 12, color: '#8a5a3a', marginBottom: 6 }}>Notas</div>
-                    <div style={{ fontSize: 12, color: '#f0dac8', background: '#2a1808', borderRadius: 8, padding: '8px 12px' }}>{activeSession.notes}</div>
+
+                {/* SESSION DETAILS — tennis */}
+                {activeSession.type === 'tennis' && (
+                  <>
+                    <div style={{ fontSize: 11, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Plan ejecutado</div>
+                    {tennisWork.map(item => (
+                      <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#381e12', border: '1px solid rgba(212,80,26,0.25)', borderRadius: 12, padding: '12px 14px', marginBottom: 8 }}>
+                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#d4501a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon name="check" size={12} color="#fff" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#8a5a3a', textDecoration: 'line-through' }}>{item.label}</div>
+                          <div style={{ fontSize: 11, color: '#5a3a22' }}>{item.detail}</div>
+                        </div>
+                        <div style={{ fontSize: 11, color: '#5a3a22', fontWeight: 700 }}>{item.duration}</div>
+                      </div>
+                    ))}
+                    <div style={{ background: 'rgba(212,80,26,0.07)', border: '1px solid rgba(212,80,26,0.18)', borderRadius: 10, padding: '10px 14px', marginTop: 4 }}>
+                      <div style={{ fontSize: 10, color: '#5a3a22', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 3 }}>Calidad de golpes</div>
+                      <div style={{ fontSize: 12, color: '#8a5a3a' }}>Registrada durante el entrenamiento</div>
+                    </div>
+                  </>
+                )}
+
+                {/* SESSION DETAILS — gym */}
+                {activeSession.type === 'gym' && (
+                  <>
+                    <div style={{ fontSize: 11, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Rutina ejecutada</div>
+                    {gymExercises.map(ex => (
+                      <div key={ex.key} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#381e12', border: '1px solid rgba(232,122,60,0.25)', borderRadius: 12, padding: '12px 14px', marginBottom: 8 }}>
+                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#e87a3c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon name="check" size={12} color="#fff" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#8a5a3a' }}>{ex.name}</div>
+                          <div style={{ fontSize: 11, color: '#5a3a22' }}>{ex.muscle}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#5a3a22' }}>{ex.sets}</div>
+                          <div style={{ fontSize: 10, color: '#3a2010' }}>{ex.weight}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Unmark button */}
+                {unmarkError && (
+                  <div style={{ background: 'rgba(212,80,26,0.12)', border: '1px solid rgba(212,80,26,0.4)', borderRadius: 10, padding: '10px 14px', marginTop: 10, fontSize: 12, color: '#e87a3c' }}>
+                    Error: {unmarkError}
                   </div>
                 )}
-              </div>
+                <button onClick={unmarkSession} disabled={unmarking} style={{ width: '100%', background: 'rgba(212,80,26,0.08)', border: '1px solid rgba(212,80,26,0.28)', borderRadius: 12, padding: 14, color: '#d4501a', fontSize: 14, fontWeight: 700, cursor: unmarking ? 'not-allowed' : 'pointer', marginTop: 12, opacity: unmarking ? 0.6 : 1 }}>
+                  {unmarking ? 'Guardando...' : '✗ Marcar como no cumplido'}
+                </button>
+              </>
             );
           })()}
 
