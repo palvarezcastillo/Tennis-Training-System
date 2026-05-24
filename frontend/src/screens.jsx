@@ -1643,15 +1643,59 @@ export const ProgressScreen = () => {
 // ─── AI COACH ─────────────────────────────────────────────────────────────────
 export const AIScreen = () => {
   const [messages, setMessages] = React.useState([
-    { role: 'assistant', text: '¡Hola Mira! Soy tu coach IA. Analizando tu semana: tenés un torneo mañana, llevás 3 días de carga moderada y tu sueño promedio fue de 7.5h. ¿Qué querés trabajar hoy?' }
+    { role: 'assistant', text: '¡Hola! Soy tu coach IA. Tengo cargada tu semana de entrenamiento y tus torneos. Preguntame lo que necesites, y si querés sumar más contexto escribilo junto con tu pregunta.' }
   ]);
   const [input, setInput] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [activeCard, setActiveCard] = React.useState(null);
+  const [coachContext, setCoachContext] = React.useState('');
+
+  React.useEffect(() => {
+    const localDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const today = new Date();
+    const todayStr = localDate(today);
+    const dow = today.getDay();
+    const shift = dow === 0 ? -6 : 1 - dow;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + shift);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const DAY_NAMES = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+    const TYPE_LABELS = { gym: 'Gym', tennis: 'Tenis/Cancha', rest: 'Descanso', tournament: 'Torneo' };
+
+    Promise.all([
+      fetch(`${import.meta.env.VITE_API_URL}/api/sessions/week?offset=0`).then(r => r.ok ? r.json() : []),
+      fetch(`${import.meta.env.VITE_API_URL}/api/tournaments`).then(r => r.ok ? r.json() : []),
+    ]).then(([sessions, tournaments]) => {
+      const weekLines = DAY_NAMES.map((name, i) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        const dateStr = localDate(d);
+        const isToday = dateStr === todayStr;
+        const session = sessions.find(s => s.date === dateStr);
+        const trn = tournaments.find(t => t.date === dateStr);
+        const type = trn ? 'tournament' : (session?.type || 'rest');
+        const label = trn ? `Torneo: ${trn.name}${trn.location ? ` (${trn.location})` : ''}` : (TYPE_LABELS[type] || 'Descanso');
+        const done = session?.done ? ' ✓ hecho' : '';
+        const rpe = session?.rpe ? `, RPE ${session.rpe}/10` : '';
+        return `${name}${isToday ? ' (HOY)' : ''}: ${label}${done}${rpe}`;
+      }).join('\n');
+
+      const upcoming = tournaments
+        .filter(t => t.date >= todayStr)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(0, 3)
+        .map(t => `- ${t.date}: ${t.name}${t.location ? ` en ${t.location}` : ''}${t.category ? `, Cat. ${t.category}` : ''}`)
+        .join('\n');
+
+      const ctx = `Semana actual:\n${weekLines}${upcoming ? `\n\nPróximos torneos:\n${upcoming}` : ''}`;
+      setCoachContext(ctx);
+    }).catch(() => {});
+  }, []);
 
   const suggestions = [
-    { icon: 'target', label: '¿Cómo preparo el torneo de mañana?', color: '#f0c040' },
-    { icon: 'fire', label: '¿Debería entrenar hoy en cancha?', color: '#d4501a' },
+    { icon: 'target', label: '¿Cómo preparo el próximo torneo?', color: '#f0c040' },
+    { icon: 'fire', label: '¿Qué hago hoy en el gym?', color: '#d4501a' },
     { icon: 'utensils', label: '¿Qué como antes del torneo?', color: '#e87a3c' },
     { icon: 'moon', label: '¿Cuánto debo descansar?', color: '#a060d4' },
   ];
@@ -1662,10 +1706,10 @@ export const AIScreen = () => {
     setInput('');
     setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/coach`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/ai-coach/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, context: coachContext }),
       });
       const data = res.ok ? await res.json() : null;
       setMessages(prev => [...prev, { role: 'assistant', text: data?.reply || 'No pude conectarme ahora. Intentá de nuevo.' }]);
