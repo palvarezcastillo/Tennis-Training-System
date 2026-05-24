@@ -762,6 +762,7 @@ export const TrainingScreen = () => {
   const [weekSessions, setWeekSessions] = React.useState([]);
   const [loadingWeek, setLoadingWeek] = React.useState(true);
   const [weekError, setWeekError]     = React.useState(null);
+  const [weekTournaments, setWeekTournaments] = React.useState([]);
   const [selectedDay, setSelectedDay] = React.useState(() => {
     const idx = WEEK_DATA.findIndex(d => d.today);
     return idx >= 0 ? idx : 0;
@@ -798,25 +799,32 @@ export const TrainingScreen = () => {
 
     const DAY_NAMES  = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
     const TYPE_LABELS = { gym:'Gym', tennis:'Cancha', rest:'Descanso', tournament:'Torneo' };
+    const monStr = localDate(monday);
+    const sunStr = localDate(sunday);
 
-    fetch(`${import.meta.env.VITE_API_URL}/api/sessions/week?offset=${weekOffset}`)
-      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
-      .then(sessions => {
+    Promise.all([
+      fetch(`${import.meta.env.VITE_API_URL}/api/sessions/week?offset=${weekOffset}`).then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
+      fetch(`${import.meta.env.VITE_API_URL}/api/tournaments?from=${monStr}&to=${sunStr}`).then(r => r.ok ? r.json() : []),
+    ])
+      .then(([sessions, tournaments]) => {
+        setWeekTournaments(tournaments);
         const week = DAY_NAMES.map((dayName, i) => {
           const d = new Date(monday);
           d.setDate(monday.getDate() + i);
           const dateStr = localDate(d);
           const isToday = dateStr === todayStr;
           const session = sessions.find(s => s.date === dateStr);
-          const type = session?.type || 'rest';
+          const trn = tournaments.find(t => t.date === dateStr);
+          const type = trn ? 'tournament' : (session?.type || 'rest');
           return {
             day: dayName,
             date: String(d.getDate()),
             fullDate: dateStr,
             type,
-            label: session?.label || TYPE_LABELS[type] || 'Descanso',
+            label: trn ? (trn.name || 'Torneo') : (session?.label || TYPE_LABELS[type] || 'Descanso'),
             done: session?.done ?? false,
             intensity: session?.intensity ?? 0,
+            tournament: trn || null,
             ...(isToday ? { today: true } : {}),
           };
         });
@@ -1115,11 +1123,13 @@ export const TrainingScreen = () => {
           )}
 
           {/* Tournament */}
-          {activeSession?.type === 'tournament' && !activeSession.done && (
+          {sel.type === 'tournament' && !activeSession?.done && (
             <div style={{ textAlign: 'center', padding: '12px 0' }}>
               <Icon name="trophy" size={32} color="#f0c040" />
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 6 }}>Día de Torneo</div>
-              <div style={{ fontSize: 11, color: '#a07030', marginTop: 3 }}>Llegá 30 min antes · Calentá bien</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 6 }}>{sel.tournament?.name || 'Día de Torneo'}</div>
+              {sel.tournament?.location && <div style={{ fontSize: 12, color: '#a07030', marginTop: 3 }}>{sel.tournament.location}</div>}
+              {sel.tournament?.category && <div style={{ fontSize: 11, color: '#f0c040', marginTop: 3 }}>Cat. {sel.tournament.category}</div>}
+              <div style={{ fontSize: 11, color: '#a07030', marginTop: 6 }}>Llegá 30 min antes · Calentá bien</div>
             </div>
           )}
 
