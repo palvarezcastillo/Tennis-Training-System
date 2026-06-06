@@ -775,6 +775,8 @@ export const TrainingScreen = () => {
   const [saveSuccess, setSaveSuccess] = React.useState(false);
   const [unmarking, setUnmarking]     = React.useState(false);
   const [unmarkError, setUnmarkError] = React.useState(null);
+  const [skipping, setSkipping]       = React.useState(false);
+  const [skipError, setSkipError]     = React.useState(null);
 
   const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const fmtDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
@@ -818,7 +820,8 @@ export const TrainingScreen = () => {
           const session = daySess[0];
           const trn = tournaments.find(t => t.date === dateStr);
           const type = trn ? 'tournament' : (session?.type || 'rest');
-          const allDone = daySess.length > 0 && daySess.every(s => s.done);
+          const allDone    = daySess.length > 0 && daySess.every(s => s.done);
+          const anySkipped = daySess.some(s => s.skipped && !s.done);
           return {
             day: dayName,
             date: String(d.getDate()),
@@ -826,6 +829,7 @@ export const TrainingScreen = () => {
             type,
             label: trn ? (trn.name || 'Torneo') : (session?.label || TYPE_LABELS[type] || 'Descanso'),
             done: allDone,
+            skipped: anySkipped,
             intensity: session?.intensity ?? 0,
             tournament: trn || null,
             ...(isToday ? { today: true } : {}),
@@ -854,6 +858,7 @@ export const TrainingScreen = () => {
     setSaveSuccess(false);
     setSaveError(null);
     setUnmarkError(null);
+    setSkipError(null);
   }, [selectedDay, weekOffset]);
 
   const sel = weekData[selectedDay] || weekData[0] || {};
@@ -938,6 +943,26 @@ export const TrainingScreen = () => {
     setUnmarking(false);
   };
 
+  const skipSession = async (skip) => {
+    if (!activeSession) return;
+    setSkipping(true);
+    setSkipError(null);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skipped: skip }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+      const updatedSessions = weekSessions.map(s => s.id === activeSession.id ? { ...s, skipped: skip } : s);
+      setWeekSessions(updatedSessions);
+      setWeekData(prev => prev.map((d, i) => i === selectedDay ? { ...d, skipped: skip && !d.done } : d));
+    } catch (err) {
+      setSkipError(String(err));
+    }
+    setSkipping(false);
+  };
+
   const accentColor = activeSession?.type === 'gym' ? '#e87a3c' : '#d4501a';
 
   return (
@@ -975,8 +1000,8 @@ export const TrainingScreen = () => {
               outline: d.today ? '2px solid #d4501a' : 'none', outlineOffset: 2,
             }}>
               <div style={{ fontSize: 9, color: '#8a5a3a', textTransform: 'uppercase', marginBottom: 2 }}>{d.day}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: d.done ? '#4caf50' : '#fff' }}>{d.date}</div>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: d.done ? '#4caf50' : TYPE_COLOR[d.type], margin: '4px auto 0' }} />
+              <div style={{ fontSize: 15, fontWeight: 700, color: d.done ? '#4caf50' : d.skipped ? '#606070' : '#fff' }}>{d.date}</div>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: d.done ? '#4caf50' : d.skipped ? '#606070' : TYPE_COLOR[d.type], margin: '4px auto 0' }} />
             </button>
           ))}
         </div>
@@ -1154,6 +1179,26 @@ export const TrainingScreen = () => {
             );
           })()}
 
+          {/* Skipped state */}
+          {activeSession && !activeSession.done && activeSession.skipped && (
+            <div style={{ background: 'rgba(100,100,120,0.10)', border: '1px solid rgba(150,150,170,0.25)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(150,150,170,0.12)', border: '1px solid rgba(150,150,170,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>✗</div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#a0a0b8' }}>Sesión no ejecutada</div>
+                  <div style={{ fontSize: 11, color: '#5a5a72' }}>{activeSession.date}</div>
+                </div>
+                <span style={{ marginLeft: 'auto', fontSize: 10, background: 'rgba(150,150,170,0.15)', color: '#a0a0b8', padding: '4px 10px', borderRadius: 20, fontWeight: 700 }}>Saltada</span>
+              </div>
+              {skipError && (
+                <div style={{ fontSize: 12, color: '#e87a3c', marginBottom: 8 }}>Error: {skipError}</div>
+              )}
+              <button onClick={() => skipSession(false)} disabled={skipping} style={{ width: '100%', background: 'rgba(212,80,26,0.12)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 12, padding: 12, color: '#d4501a', fontSize: 13, fontWeight: 700, cursor: skipping ? 'not-allowed' : 'pointer', opacity: skipping ? 0.6 : 1 }}>
+                {skipping ? 'Guardando...' : '↩ Reactivar sesión'}
+              </button>
+            </div>
+          )}
+
           {/* Rest */}
           {activeSession?.type === 'rest' && !activeSession.done && (
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
@@ -1175,7 +1220,7 @@ export const TrainingScreen = () => {
           )}
 
           {/* Tennis plan */}
-          {activeSession?.type === 'tennis' && !activeSession.done && (
+          {activeSession?.type === 'tennis' && !activeSession.done && !activeSession.skipped && (
             <>
               <div style={{ fontSize: 11, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Plan de sesión</div>
               {tennisWork.map(item => (
@@ -1194,7 +1239,7 @@ export const TrainingScreen = () => {
           )}
 
           {/* Gym plan */}
-          {activeSession?.type === 'gym' && !activeSession.done && (
+          {activeSession?.type === 'gym' && !activeSession.done && !activeSession.skipped && (
             <>
               <div style={{ fontSize: 11, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Rutina del día — Fuerza</div>
               {gymExercises.map(ex => (
@@ -1215,8 +1260,18 @@ export const TrainingScreen = () => {
             </>
           )}
 
+          {/* "No la hice" button — shown when plan is visible but nothing checked yet */}
+          {activeSession && (activeSession.type === 'tennis' || activeSession.type === 'gym') && !activeSession.done && !activeSession.skipped && !Object.values(checkedItems).some(Boolean) && (
+            <div style={{ marginTop: 8 }}>
+              {skipError && <div style={{ fontSize: 12, color: '#e87a3c', marginBottom: 8 }}>Error: {skipError}</div>}
+              <button onClick={() => skipSession(true)} disabled={skipping} style={{ width: '100%', background: 'rgba(100,100,120,0.10)', border: '1px solid rgba(150,150,170,0.25)', borderRadius: 12, padding: 12, color: '#a0a0b8', fontSize: 13, fontWeight: 700, cursor: skipping ? 'not-allowed' : 'pointer', opacity: skipping ? 0.6 : 1 }}>
+                {skipping ? 'Guardando...' : '✗ No la hice'}
+              </button>
+            </div>
+          )}
+
           {/* RPE + Complete button — shown only after at least one exercise is checked */}
-          {activeSession && (activeSession.type === 'tennis' || activeSession.type === 'gym') && !saveSuccess && !activeSession.done && Object.values(checkedItems).some(Boolean) && (
+          {activeSession && (activeSession.type === 'tennis' || activeSession.type === 'gym') && !saveSuccess && !activeSession.done && !activeSession.skipped && Object.values(checkedItems).some(Boolean) && (
             <>
               <div style={{ background: '#381e12', borderRadius: 14, padding: 14, marginTop: 4 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
