@@ -1,16 +1,18 @@
 const { Router } = require('express');
 const supabase   = require('../middleware/supabase');
+const requireAuth = require('../middleware/auth');
 
 const router = Router();
+router.use(requireAuth);
 
-const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Database not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in .env' }); return false; } return true; };
+const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Database not configured.' }); return false; } return true; };
 
 // GET /api/tournaments?from=YYYY-MM-DD&to=YYYY-MM-DD
 router.get('/', async (req, res) => {
   if (!dbCheck(res)) return;
   const { from, to } = req.query;
 
-  let query = supabase.from('tournaments').select('*').order('date', { ascending: true });
+  let query = supabase.from('tournaments').select('*').eq('user_id', req.userId).order('date', { ascending: true });
   if (from) query = query.gte('date', from);
   if (to)   query = query.lte('date', to);
 
@@ -30,7 +32,7 @@ router.post('/', async (req, res) => {
 
   const { data, error } = await supabase
     .from('tournaments')
-    .insert({ name, date, location, category, notes })
+    .insert({ user_id: req.userId, name, date, location, category, notes })
     .select()
     .single();
 
@@ -46,7 +48,8 @@ router.delete('/:id', async (req, res) => {
   const { error } = await supabase
     .from('tournaments')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', req.userId);
 
   if (error) return res.status(500).json({ error: error.message });
   return res.status(204).send();

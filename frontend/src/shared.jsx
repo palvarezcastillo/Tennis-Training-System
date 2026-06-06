@@ -68,6 +68,7 @@ const ICONS = {
   info: <><circle cx="12" cy="12" r="10" strokeWidth="2" fill="none"/><path d="M12 8V12M12 16H12.01" strokeWidth="2" strokeLinecap="round"/></>,
   edit: <><path d="M11 4H4C3.4 4 3 4.4 3 5V20C3 20.6 3.4 21 4 21H19C19.6 21 20 20.6 20 20V13" strokeWidth="2" strokeLinecap="round"/><path d="M18.5 2.5L21.5 5.5L12 15L9 15L9 12L18.5 2.5Z" strokeWidth="2" strokeLinejoin="round" fill="none"/></>,
   refresh: <path d="M23 4V10H17M1 20V14H7M20.49 9A9 9 0 1 0 21.99 12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>,
+  logout: <><path d="M9 21H5C4.4 21 4 20.6 4 20V4C4 3.4 4.4 3 5 3H9" strokeWidth="2" strokeLinecap="round"/><path d="M16 17L21 12L16 7M21 12H9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></>,
 };
 
 export const Icon = ({ name, size = 20, color = "currentColor" }) => (

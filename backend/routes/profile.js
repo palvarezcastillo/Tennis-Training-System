@@ -1,7 +1,9 @@
 const { Router } = require('express');
 const supabase   = require('../middleware/supabase');
+const requireAuth = require('../middleware/auth');
 
 const router = Router();
+router.use(requireAuth);
 
 const dbCheck = (res) => {
   if (!supabase) { res.status(503).json({ error: 'Database not configured.' }); return false; }
@@ -9,12 +11,12 @@ const dbCheck = (res) => {
 };
 
 // GET /api/profile
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
   if (!dbCheck(res)) return;
   const { data, error } = await supabase
     .from('profile')
     .select('*')
-    .limit(1)
+    .eq('user_id', req.userId)
     .maybeSingle();
   if (error) return res.status(500).json({ error: error.message });
   return res.json(data || {});
@@ -25,14 +27,13 @@ router.put('/', async (req, res) => {
   if (!dbCheck(res)) return;
   const { name, height_cm, weight_kg, birth_date } = req.body;
 
-  const updates = {};
+  const updates = { user_id: req.userId, updated_at: new Date().toISOString() };
   if (name       !== undefined) updates.name       = name;
   if (height_cm  !== undefined) updates.height_cm  = height_cm;
   if (weight_kg  !== undefined) updates.weight_kg  = weight_kg;
   if (birth_date !== undefined) updates.birth_date = birth_date;
-  updates.updated_at = new Date().toISOString();
 
-  const { data: existing } = await supabase.from('profile').select('id').limit(1).maybeSingle();
+  const { data: existing } = await supabase.from('profile').select('id').eq('user_id', req.userId).maybeSingle();
 
   let result;
   if (existing) {

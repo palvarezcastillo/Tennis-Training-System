@@ -1,13 +1,12 @@
 const { Router } = require('express');
 const supabase   = require('../middleware/supabase');
+const requireAuth = require('../middleware/auth');
 
 const router = Router();
+router.use(requireAuth);
 
 const dbCheck = (res) => {
-  if (!supabase) {
-    res.status(503).json({ error: 'Database not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in .env' });
-    return false;
-  }
+  if (!supabase) { res.status(503).json({ error: 'Database not configured.' }); return false; }
   return true;
 };
 
@@ -17,10 +16,10 @@ router.get('/', async (req, res) => {
   if (!dbCheck(res)) return;
   const { date, from, to } = req.query;
 
-  let query = supabase.from('nutrition').select('*').order('created_at', { ascending: true });
-  if (date)        query = query.eq('date', date);
-  else if (from)   query = query.gte('date', from);
-  if (to)          query = query.lte('date', to);
+  let query = supabase.from('nutrition').select('*').eq('user_id', req.userId).order('created_at', { ascending: true });
+  if (date)      query = query.eq('date', date);
+  else if (from) query = query.gte('date', from);
+  if (to)        query = query.lte('date', to);
 
   const { data, error } = await query;
   if (error) return res.status(500).json({ error: error.message });
@@ -28,7 +27,6 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/nutrition — replace all pillars for a date
-// Body: { date: 'YYYY-MM-DD', pillars: [{ key, name, done }] }
 router.post('/', async (req, res) => {
   if (!dbCheck(res)) return;
   const { date, pillars } = req.body;
@@ -40,11 +38,13 @@ router.post('/', async (req, res) => {
   const { error: delError } = await supabase
     .from('nutrition')
     .delete()
-    .eq('date', date);
+    .eq('date', date)
+    .eq('user_id', req.userId);
 
   if (delError) return res.status(500).json({ error: delError.message });
 
   const rows = pillars.map(p => ({
+    user_id:     req.userId,
     date,
     pillar:      p.key,
     pillar_name: p.name,

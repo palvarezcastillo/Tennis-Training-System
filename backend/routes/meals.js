@@ -1,15 +1,17 @@
 const { Router } = require('express');
 const supabase   = require('../middleware/supabase');
+const requireAuth = require('../middleware/auth');
 
 const router = Router();
+router.use(requireAuth);
 
-const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Database not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in .env' }); return false; } return true; };
+const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Database not configured.' }); return false; } return true; };
 
 // GET /api/meals?from=YYYY-MM-DD&to=YYYY-MM-DD
 router.get('/', async (req, res) => {
   if (!dbCheck(res)) return;
   const { from, to } = req.query;
-  let query = supabase.from('meals').select('*').order('date', { ascending: true }).order('created_at', { ascending: true });
+  let query = supabase.from('meals').select('*').eq('user_id', req.userId).order('date', { ascending: true }).order('created_at', { ascending: true });
   if (from) query = query.gte('date', from);
   if (to)   query = query.lte('date', to);
   const { data, error } = await query;
@@ -18,13 +20,14 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/meals/today
-router.get('/today', async (_req, res) => {
+router.get('/today', async (req, res) => {
   if (!dbCheck(res)) return;
   const today = new Date().toISOString().slice(0, 10);
 
   const { data, error } = await supabase
     .from('meals')
     .select('*')
+    .eq('user_id', req.userId)
     .eq('date', today)
     .order('created_at', { ascending: true });
 
@@ -46,6 +49,7 @@ router.post('/', async (req, res) => {
   const { data, error } = await supabase
     .from('meals')
     .insert({
+      user_id: req.userId,
       date: today,
       name,
       time: time || new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }),

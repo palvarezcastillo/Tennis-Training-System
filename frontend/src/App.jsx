@@ -9,6 +9,9 @@ import {
   ProgressScreen,
   AIScreen,
 } from './screens.jsx'
+import AuthScreen from './AuthScreen.jsx'
+import { supabase } from './supabase.js'
+import { apiFetch } from './api.js'
 
 const TABS = [
   { id: 'dashboard', label: 'Inicio',     icon: 'home'     },
@@ -41,7 +44,7 @@ function ProfilePanel() {
   const [saved, setSaved]     = React.useState(false)
 
   React.useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/profile`)
+    apiFetch(`${import.meta.env.VITE_API_URL}/api/profile`)
       .then(r => r.ok ? r.json() : {})
       .then(d => setForm({
         name:       d.name       || '',
@@ -64,7 +67,7 @@ function ProfilePanel() {
   const save = async () => {
     setSaving(true); setSaved(false)
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/profile`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL}/api/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -114,10 +117,42 @@ function ProfilePanel() {
 }
 
 export default function App() {
+  const [session, setSession]   = React.useState(undefined) // undefined = loading
   const [showSplash, setShowSplash] = React.useState(true)
   const [activeTab, setActiveTab] = React.useState('dashboard')
   const isDesktop = useIsDesktop()
 
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      if (!session) setShowSplash(true)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+  }
+
+  // Still checking session
+  if (session === undefined) {
+    return (
+      <div style={{ minHeight: '100dvh', background: '#0d0805', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 32, height: 32, border: '3px solid #2a1208', borderTopColor: '#d4501a', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
+  }
+
+  // Not logged in
+  if (!session) {
+    return <AuthScreen />
+  }
+
+  // Splash
   if (showSplash) {
     return <SplashScreen onEnter={() => setShowSplash(false)} />
   }
@@ -138,9 +173,7 @@ export default function App() {
   if (isDesktop) {
     return (
       <div style={{ minHeight: '100dvh', background: '#0d0805', fontFamily: FONT }}>
-        <div style={{
-          height: '100dvh', display: 'flex',
-        }}>
+        <div style={{ height: '100dvh', display: 'flex' }}>
           {/* Sidebar */}
           <nav style={{
             width: 220, flexShrink: 0, background: '#0a0603',
@@ -183,15 +216,24 @@ export default function App() {
                     }}
                   >
                     <Icon name={tab.icon} size={18} color={active ? '#d4501a' : '#5a3a22'} />
-                    <span style={{
-                      fontSize: 13, fontWeight: active ? 700 : 400,
-                      color: active ? '#f0dac8' : '#5a3a22',
-                    }}>
+                    <span style={{ fontSize: 13, fontWeight: active ? 700 : 400, color: active ? '#f0dac8' : '#5a3a22' }}>
                       {tab.label}
                     </span>
                   </button>
                 )
               })}
+            </div>
+
+            {/* Logout */}
+            <div style={{ padding: '12px 12px 20px' }}>
+              <div style={{ width: '80%', height: 1, background: '#2a1208', margin: '0 auto 12px' }} />
+              <div style={{ fontSize: 10, color: '#5a3a22', padding: '0 14px', marginBottom: 6, wordBreak: 'break-all' }}>
+                {session.user?.email}
+              </div>
+              <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: '1px solid #2a1208', background: 'transparent', cursor: 'pointer', color: '#5a3a22', fontSize: 12, fontWeight: 600 }}>
+                <Icon name="logout" size={14} color="#5a3a22" />
+                Cerrar sesión
+              </button>
             </div>
           </nav>
 
@@ -245,6 +287,19 @@ export default function App() {
             </button>
           )
         })}
+        {/* Mobile logout — long press or swipe pattern not practical; add as last tab icon */}
+        <button
+          onClick={handleLogout}
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            gap: 3, padding: '10px 2px', border: 'none',
+            background: 'transparent', cursor: 'pointer',
+          }}
+        >
+          <Icon name="logout" size={20} color="#5a3a22" />
+          <span style={{ fontSize: 9, color: '#5a3a22', letterSpacing: 0.3 }}>Salir</span>
+        </button>
       </nav>
     </div>
   )

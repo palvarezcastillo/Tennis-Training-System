@@ -1,15 +1,17 @@
 const { Router } = require('express');
 const supabase   = require('../middleware/supabase');
+const requireAuth = require('../middleware/auth');
 
 const router = Router();
+router.use(requireAuth);
 
-const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Database not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in .env' }); return false; } return true; };
+const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Database not configured.' }); return false; } return true; };
 
 // GET /api/sessions?from=YYYY-MM-DD&to=YYYY-MM-DD
 router.get('/', async (req, res) => {
   if (!dbCheck(res)) return;
   const { from, to } = req.query;
-  let query = supabase.from('sessions').select('*').order('date', { ascending: true });
+  let query = supabase.from('sessions').select('*').eq('user_id', req.userId).order('date', { ascending: true });
   if (from) query = query.gte('date', from);
   if (to)   query = query.lte('date', to);
   const { data, error } = await query;
@@ -17,12 +19,11 @@ router.get('/', async (req, res) => {
   return res.json(data || []);
 });
 
-// GET /api/sessions/week?offset=0   (0=current, -1=prev, +1=next)
+// GET /api/sessions/week?offset=0
 router.get('/week', async (req, res) => {
   if (!dbCheck(res)) return;
   const offset = parseInt(req.query.offset || '0', 10);
 
-  // Use local date string (YYYY-MM-DD) to avoid UTC-offset shifting the day
   const localDate = (d) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -41,17 +42,15 @@ router.get('/week', async (req, res) => {
   const monStr = localDate(monday);
   const sunStr = localDate(sunday);
 
-  console.log(`[sessions/week] offset=${offset} rango: ${monStr} → ${sunStr}`);
-
   const { data, error } = await supabase
     .from('sessions')
     .select('*')
+    .eq('user_id', req.userId)
     .gte('date', monStr)
     .lte('date', sunStr)
     .order('date', { ascending: true });
 
   if (error) return res.status(500).json({ error: error.message });
-  console.log('Sesiones encontradas:', JSON.stringify(data));
   return res.json(data || []);
 });
 
@@ -66,7 +65,7 @@ router.post('/', async (req, res) => {
 
   const { data, error } = await supabase
     .from('sessions')
-    .insert({ date, type, label, intensity: intensity ?? 0, done: done ?? false, duration_min, rpe, notes })
+    .insert({ user_id: req.userId, date, type, label, intensity: intensity ?? 0, done: done ?? false, duration_min, rpe, notes })
     .select()
     .single();
 
@@ -91,6 +90,7 @@ router.put('/:id', async (req, res) => {
     .from('sessions')
     .update(updates)
     .eq('id', id)
+    .eq('user_id', req.userId)
     .select()
     .single();
 

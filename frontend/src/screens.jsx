@@ -1,5 +1,6 @@
 import React from 'react'
 import { TennisPlayer, RingChart, MiniBar, Icon } from './shared.jsx'
+import { apiFetch } from './api.js'
 
 // ─── DATA & STATE ─────────────────────────────────────────────────────────────
 const QUOTES = [
@@ -123,7 +124,7 @@ export const DashboardScreen = ({ setScreen }) => {
     const lastDay   = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
     const monthTo   = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
 
-    const api = (path) => fetch(`${import.meta.env.VITE_API_URL}${path}`).then(r => r.ok ? r.json() : null).catch(() => null);
+    const api = (path) => apiFetch(`${import.meta.env.VITE_API_URL}${path}`).then(r => r.ok ? r.json() : null).catch(() => null);
 
     Promise.all([
       api('/api/profile'),
@@ -384,9 +385,9 @@ export const CalendarScreen = () => {
     const TYPE_LABELS = { gym:'Gym', tennis:'Cancha', rest:'Descanso', tournament:'Torneo' };
 
     Promise.all([
-      fetch(`${import.meta.env.VITE_API_URL}/api/sessions/week?offset=${weekOffset}`)
+      apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/week?offset=${weekOffset}`)
         .then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
-      fetch(`${import.meta.env.VITE_API_URL}/api/tournaments?from=${monStr}&to=${sunStr}`)
+      apiFetch(`${import.meta.env.VITE_API_URL}/api/tournaments?from=${monStr}&to=${sunStr}`)
         .then(r => r.ok ? r.json() : []),
     ]).then(([sessions, weekTournaments]) => {
       const week = DAY_NAMES.map((dayName, i) => {
@@ -442,7 +443,7 @@ export const CalendarScreen = () => {
   }, [weekOffset, refreshKey]);
 
   React.useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/tournaments`)
+    apiFetch(`${import.meta.env.VITE_API_URL}/api/tournaments`)
       .then(r => r.ok ? r.json() : [])
       .then(data => setAllTournaments(data))
       .catch(() => {});
@@ -452,7 +453,7 @@ export const CalendarScreen = () => {
     if (!newTournament.name || !newTournament.date) return;
     setSavingTournament(true);
     setTournamentError(null);
-    fetch(`${import.meta.env.VITE_API_URL}/api/tournaments`, {
+    apiFetch(`${import.meta.env.VITE_API_URL}/api/tournaments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTournament),
@@ -478,7 +479,7 @@ export const CalendarScreen = () => {
     if (!planForm.date || !planForm.type) return;
     setSavingPlan(true);
     setPlanError(null);
-    fetch(`${import.meta.env.VITE_API_URL}/api/sessions`, {
+    apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date: planForm.date, type: planForm.type, duration_min: planForm.duration_min, rpe: planForm.rpe, notes: planForm.notes, done: false }),
@@ -494,7 +495,7 @@ export const CalendarScreen = () => {
   };
 
   const deleteTournament = (id) => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/tournaments/${id}`, { method: 'DELETE' })
+    apiFetch(`${import.meta.env.VITE_API_URL}/api/tournaments/${id}`, { method: 'DELETE' })
       .then(() => setRefreshKey(k => k + 1))
       .catch(err => setWeekError(err.toString()));
   };
@@ -502,7 +503,7 @@ export const CalendarScreen = () => {
   const toggleDone = (session) => {
     const newDone = !session.done;
     setWeekSessions(prev => prev.map(s => s.id === session.id ? { ...s, done: newDone } : s));
-    fetch(`${import.meta.env.VITE_API_URL}/api/sessions/${session.id}`, {
+    apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/${session.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ done: newDone }),
@@ -808,8 +809,8 @@ export const TrainingScreen = () => {
     const sunStr = localDate(sunday);
 
     Promise.all([
-      fetch(`${import.meta.env.VITE_API_URL}/api/sessions/week?offset=${weekOffset}`).then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
-      fetch(`${import.meta.env.VITE_API_URL}/api/tournaments?from=${monStr}&to=${sunStr}`).then(r => r.ok ? r.json() : []),
+      apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/week?offset=${weekOffset}`).then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
+      apiFetch(`${import.meta.env.VITE_API_URL}/api/tournaments?from=${monStr}&to=${sunStr}`).then(r => r.ok ? r.json() : []),
     ])
       .then(([sessions, tournaments]) => {
         setWeekTournaments(tournaments);
@@ -901,14 +902,14 @@ export const TrainingScreen = () => {
     }));
 
     try {
-      const detRes = await fetch(`${import.meta.env.VITE_API_URL}/api/session-details`, {
+      const detRes = await apiFetch(`${import.meta.env.VITE_API_URL}/api/session-details`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: activeSession.id, exercises }),
       });
       if (!detRes.ok) throw new Error((await detRes.json()).error || detRes.statusText);
 
-      const sessRes = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, {
+      const sessRes = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ done: true, rpe }),
@@ -931,7 +932,7 @@ export const TrainingScreen = () => {
     setUnmarking(true);
     setUnmarkError(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ done: false }),
@@ -952,7 +953,7 @@ export const TrainingScreen = () => {
     if (!activeSession || newType === activeSession.type) { setEditingType(false); return; }
     setSavingType(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: newType, label: TYPE_LABELS_MAP[newType] || newType }),
@@ -978,7 +979,7 @@ export const TrainingScreen = () => {
     setSkipping(true);
     setSkipError(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ skipped: skip }),
@@ -1434,7 +1435,7 @@ export const FoodScreen = () => {
       return { day: dayName, date: String(d.getDate()), fullDate: dateStr, today: dateStr === todayStr };
     });
 
-    fetch(`${import.meta.env.VITE_API_URL}/api/nutrition?from=${monStr}&to=${sunStr}`)
+    apiFetch(`${import.meta.env.VITE_API_URL}/api/nutrition?from=${monStr}&to=${sunStr}`)
       .then(r => r.ok ? r.json() : [])
       .catch(() => [])
       .then(nutrition => {
@@ -1469,7 +1470,7 @@ export const FoodScreen = () => {
 
   // fetch today's meals once
   React.useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/meals/today`)
+    apiFetch(`${import.meta.env.VITE_API_URL}/api/meals/today`)
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
       .then(data => { setMeals(data); setMealsError(null); })
       .catch(err => setMealsError(err.toString()))
@@ -1493,7 +1494,7 @@ export const FoodScreen = () => {
     setSaveError(null);
     const pillars = NUTRITION_PILLARS.map(p => ({ key: p.key, name: p.name, done: pillarsState[p.key] ?? false }));
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/nutrition`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL}/api/nutrition`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: sel.fullDate, pillars }),
@@ -1513,13 +1514,13 @@ export const FoodScreen = () => {
 
   const addMeal = () => {
     if (!newMeal.items) return;
-    fetch(`${import.meta.env.VITE_API_URL}/api/meals`, {
+    apiFetch(`${import.meta.env.VITE_API_URL}/api/meals`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newMeal.name, items: newMeal.items, cal: +newMeal.cal || 300, protein: +newMeal.p || 20, carbs: +newMeal.c || 40, fat: +newMeal.g || 8, sleep_hours: newMeal.sleep ? +newMeal.sleep : null }),
     })
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
-      .then(() => fetch(`${import.meta.env.VITE_API_URL}/api/meals/today`).then(r => r.json()))
+      .then(() => apiFetch(`${import.meta.env.VITE_API_URL}/api/meals/today`).then(r => r.json()))
       .then(data => { setMeals(data); setShowAdd(false); setNewMeal({ name: 'Cena', items: '', cal: '', p: '', c: '', g: '', sleep: '' }); })
       .catch(err => setMealsError(err.toString()));
   };
@@ -1810,8 +1811,8 @@ export const AIScreen = () => {
     const TYPE_LABELS = { gym: 'Gym', tennis: 'Tenis/Cancha', rest: 'Descanso', tournament: 'Torneo' };
 
     Promise.all([
-      fetch(`${import.meta.env.VITE_API_URL}/api/sessions/week?offset=0`).then(r => r.ok ? r.json() : []),
-      fetch(`${import.meta.env.VITE_API_URL}/api/tournaments`).then(r => r.ok ? r.json() : []),
+      apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/week?offset=0`).then(r => r.ok ? r.json() : []),
+      apiFetch(`${import.meta.env.VITE_API_URL}/api/tournaments`).then(r => r.ok ? r.json() : []),
     ]).then(([sessions, tournaments]) => {
       const weekLines = DAY_NAMES.map((name, i) => {
         const d = new Date(monday);
@@ -1852,7 +1853,7 @@ export const AIScreen = () => {
     setInput('');
     setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/ai-coach/chat`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL}/api/ai-coach/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, context: coachContext }),

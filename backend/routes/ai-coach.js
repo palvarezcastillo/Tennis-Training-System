@@ -1,7 +1,9 @@
-const { Router }    = require('express');
-const Anthropic      = require('@anthropic-ai/sdk');
+const { Router }  = require('express');
+const Anthropic   = require('@anthropic-ai/sdk');
+const requireAuth = require('../middleware/auth');
 
 const router = Router();
+router.use(requireAuth);
 
 const SYSTEM_PROMPT = `Sos un coach de tenis y nutrición experto llamado MIRA Coach.
 El atleta es Mira, nivel Competitivo-Amateur, juega 2 días de tenis y 2 días de gym por semana.
@@ -27,17 +29,17 @@ router.post('/chat', async (req, res) => {
     ? `Contexto del atleta: ${context}\n\nPregunta: ${message}`
     : message;
 
-  const msg = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 256,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userContent }],
-  }).catch(err => {
-    throw new Error(`Anthropic API error: ${err.message}`);
-  });
-
-  const reply = msg.content[0]?.text || 'No pude generar una respuesta.';
-  return res.json({ reply });
+  try {
+    const msg = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 256,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userContent }],
+    });
+    return res.json({ reply: msg.content[0]?.text || '' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

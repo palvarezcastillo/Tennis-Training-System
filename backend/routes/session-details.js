@@ -1,13 +1,12 @@
 const { Router } = require('express');
 const supabase   = require('../middleware/supabase');
+const requireAuth = require('../middleware/auth');
 
 const router = Router();
+router.use(requireAuth);
 
 const dbCheck = (res) => {
-  if (!supabase) {
-    res.status(503).json({ error: 'Database not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in .env' });
-    return false;
-  }
+  if (!supabase) { res.status(503).json({ error: 'Database not configured.' }); return false; }
   return true;
 };
 
@@ -20,6 +19,7 @@ router.get('/:session_id', async (req, res) => {
     .from('session_details')
     .select('*')
     .eq('session_id', session_id)
+    .eq('user_id', req.userId)
     .order('created_at', { ascending: true });
 
   if (error) return res.status(500).json({ error: error.message });
@@ -35,15 +35,16 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'session_id and exercises[] are required' });
   }
 
-  // Replace existing records for this session
   const { error: delError } = await supabase
     .from('session_details')
     .delete()
-    .eq('session_id', session_id);
+    .eq('session_id', session_id)
+    .eq('user_id', req.userId);
 
   if (delError) return res.status(500).json({ error: delError.message });
 
   const rows = exercises.map(ex => ({
+    user_id:       req.userId,
     session_id,
     exercise_key:  ex.key,
     exercise_name: ex.name,

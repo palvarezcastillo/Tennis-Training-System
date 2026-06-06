@@ -1,24 +1,23 @@
 const { Router } = require('express');
 const supabase   = require('../middleware/supabase');
+const requireAuth = require('../middleware/auth');
 
 const router = Router();
+router.use(requireAuth);
 
-const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Database not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in .env' }); return false; } return true; };
+const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Database not configured.' }); return false; } return true; };
 
 // GET /api/metrics/today
-router.get('/today', async (_req, res) => {
+router.get('/today', async (req, res) => {
   if (!dbCheck(res)) return;
   const today = new Date().toISOString().slice(0, 10);
 
   const { data, error } = await supabase
     .from('daily_metrics')
     .select('*')
+    .eq('user_id', req.userId)
     .eq('date', today)
     .maybeSingle();
-
-  console.log('Buscando fecha:', today);
-  console.log('Data:', JSON.stringify(data));
-  console.log('Error:', JSON.stringify(error));
 
   if (error) return res.status(500).json({ error: error.message });
   return res.json(data || {});
@@ -28,11 +27,12 @@ router.get('/today', async (_req, res) => {
 router.put('/today', async (req, res) => {
   if (!dbCheck(res)) return;
   const today = new Date().toISOString().slice(0, 10);
-  const updates = { ...req.body, date: today };
+  const updates = { ...req.body, date: today, user_id: req.userId };
 
   const { data: existing } = await supabase
     .from('daily_metrics')
     .select('id')
+    .eq('user_id', req.userId)
     .eq('date', today)
     .maybeSingle();
 
@@ -41,7 +41,7 @@ router.put('/today', async (req, res) => {
     result = await supabase
       .from('daily_metrics')
       .update(updates)
-      .eq('date', today)
+      .eq('id', existing.id)
       .select()
       .single();
   } else {

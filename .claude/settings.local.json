@@ -10,7 +10,8 @@
       "Bash(Out-String)",
       "Bash(grep -n \"fetch\\('/api/\\\\|fetch\\(\\\\`/api/\" \"C:/Users/DELL/Tennis-Training-System/frontend/src/screens.jsx\")",
       "Bash(git commit *)",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\DELL\\\\Tennis-Training-System\\\\frontend\\\\src\" -Recurse | Where-Object { $_.PSIsContainer -eq $false } | Select-Object FullName)"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\DELL\\\\Tennis-Training-System\\\\frontend\\\\src\" -Recurse | Where-Object { $_.PSIsContainer -eq $false } | Select-Object FullName)",
+      "Bash(npm install *)"
     ]
   }
 }
