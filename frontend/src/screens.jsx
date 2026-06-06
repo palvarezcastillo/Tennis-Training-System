@@ -767,6 +767,7 @@ export const TrainingScreen = () => {
     const idx = WEEK_DATA.findIndex(d => d.today);
     return idx >= 0 ? idx : 0;
   });
+  const [activeSessionIdx, setActiveSessionIdx] = React.useState(0);
   const [checkedItems, setCheckedItems] = React.useState({});
   const [rpe, setRpe]         = React.useState(7);
   const [saving, setSaving]   = React.useState(false);
@@ -813,16 +814,18 @@ export const TrainingScreen = () => {
           d.setDate(monday.getDate() + i);
           const dateStr = localDate(d);
           const isToday = dateStr === todayStr;
-          const session = sessions.find(s => s.date === dateStr);
+          const daySess = sessions.filter(s => s.date === dateStr);
+          const session = daySess[0];
           const trn = tournaments.find(t => t.date === dateStr);
           const type = trn ? 'tournament' : (session?.type || 'rest');
+          const allDone = daySess.length > 0 && daySess.every(s => s.done);
           return {
             day: dayName,
             date: String(d.getDate()),
             fullDate: dateStr,
             type,
             label: trn ? (trn.name || 'Torneo') : (session?.label || TYPE_LABELS[type] || 'Descanso'),
-            done: session?.done ?? false,
+            done: allDone,
             intensity: session?.intensity ?? 0,
             tournament: trn || null,
             ...(isToday ? { today: true } : {}),
@@ -846,6 +849,7 @@ export const TrainingScreen = () => {
   }, [weekOffset]);
 
   React.useEffect(() => {
+    setActiveSessionIdx(0);
     setCheckedItems({});
     setSaveSuccess(false);
     setSaveError(null);
@@ -854,7 +858,7 @@ export const TrainingScreen = () => {
 
   const sel = weekData[selectedDay] || weekData[0] || {};
   const daySessions   = weekSessions.filter(s => s.date === sel.fullDate);
-  const activeSession = daySessions[0] || null;
+  const activeSession = daySessions[activeSessionIdx] || daySessions[0] || null;
 
   const tennisWork = [
     { key: 't1', label: 'Calentamiento',       duration: '20min', detail: 'Trote + movilidad articular' },
@@ -903,8 +907,10 @@ export const TrainingScreen = () => {
       });
       if (!sessRes.ok) throw new Error((await sessRes.json()).error || sessRes.statusText);
 
-      setWeekSessions(prev => prev.map(s => s.id === activeSession.id ? { ...s, done: true, rpe } : s));
-      setWeekData(prev => prev.map((d, i) => i === selectedDay ? { ...d, done: true } : d));
+      const updatedSessions = weekSessions.map(s => s.id === activeSession.id ? { ...s, done: true, rpe } : s);
+      setWeekSessions(updatedSessions);
+      const dayAllDone = updatedSessions.filter(s => s.date === sel.fullDate).every(s => s.done);
+      setWeekData(prev => prev.map((d, i) => i === selectedDay ? { ...d, done: dayAllDone } : d));
       setSaveSuccess(true);
     } catch (err) {
       setSaveError(String(err));
@@ -923,7 +929,8 @@ export const TrainingScreen = () => {
         body: JSON.stringify({ done: false }),
       });
       if (!res.ok) throw new Error((await res.json()).error || res.statusText);
-      setWeekSessions(prev => prev.map(s => s.id === activeSession.id ? { ...s, done: false } : s));
+      const updatedSessions = weekSessions.map(s => s.id === activeSession.id ? { ...s, done: false } : s);
+      setWeekSessions(updatedSessions);
       setWeekData(prev => prev.map((d, i) => i === selectedDay ? { ...d, done: false } : d));
     } catch (err) {
       setUnmarkError(String(err));
@@ -998,6 +1005,40 @@ export const TrainingScreen = () => {
               </div>
             )}
           </div>
+
+          {/* Session tabs — shown only when there are multiple sessions for the day */}
+          {daySessions.length > 1 && (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+              {daySessions.map((s, i) => {
+                const TYPE_LABELS = { gym: 'Gym', tennis: 'Cancha', rest: 'Descanso', tournament: 'Torneo' };
+                const isActive = i === activeSessionIdx;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => { setActiveSessionIdx(i); setCheckedItems({}); setSaveSuccess(false); setSaveError(null); }}
+                    style={{
+                      flex: 1,
+                      background: isActive ? `${TYPE_COLOR[s.type]}22` : 'transparent',
+                      border: `1px solid ${isActive ? TYPE_COLOR[s.type] : '#3a1808'}`,
+                      borderRadius: 10,
+                      padding: '6px 8px',
+                      cursor: 'pointer',
+                      color: isActive ? TYPE_COLOR[s.type] : '#8a5a3a',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    {s.done && <span style={{ color: '#4caf50' }}>✓</span>}
+                    {s.label || TYPE_LABELS[s.type] || s.type}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* No session */}
           {!activeSession && (
