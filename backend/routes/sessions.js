@@ -78,12 +78,14 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   if (!dbCheck(res)) return;
   const { id } = req.params;
-  const { done, rpe, skipped } = req.body;
+  const { done, rpe, skipped, type, label } = req.body;
 
   const updates = {};
   if (done    !== undefined) updates.done    = done;
   if (rpe     !== undefined) updates.rpe     = rpe;
   if (skipped !== undefined) updates.skipped = skipped;
+  if (type    !== undefined) updates.type    = type;
+  if (label   !== undefined) updates.label   = label;
 
   const { data, error } = await supabase
     .from('sessions')

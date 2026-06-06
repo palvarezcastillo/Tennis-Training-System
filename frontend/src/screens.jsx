@@ -777,6 +777,8 @@ export const TrainingScreen = () => {
   const [unmarkError, setUnmarkError] = React.useState(null);
   const [skipping, setSkipping]       = React.useState(false);
   const [skipError, setSkipError]     = React.useState(null);
+  const [editingType, setEditingType] = React.useState(false);
+  const [savingType, setSavingType]   = React.useState(false);
 
   const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const fmtDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
@@ -859,6 +861,7 @@ export const TrainingScreen = () => {
     setSaveError(null);
     setUnmarkError(null);
     setSkipError(null);
+    setEditingType(false);
   }, [selectedDay, weekOffset]);
 
   const sel = weekData[selectedDay] || weekData[0] || {};
@@ -943,6 +946,33 @@ export const TrainingScreen = () => {
     setUnmarking(false);
   };
 
+  const TYPE_LABELS_MAP = { tennis: 'Cancha', gym: 'Gym', rest: 'Descanso' };
+
+  const changeSessionType = async (newType) => {
+    if (!activeSession || newType === activeSession.type) { setEditingType(false); return; }
+    setSavingType(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: newType, label: TYPE_LABELS_MAP[newType] || newType }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+      const updatedSessions = weekSessions.map(s =>
+        s.id === activeSession.id ? { ...s, type: newType, label: TYPE_LABELS_MAP[newType] || newType } : s
+      );
+      setWeekSessions(updatedSessions);
+      setWeekData(prev => prev.map((d, i) =>
+        i === selectedDay ? { ...d, type: newType, label: TYPE_LABELS_MAP[newType] || newType } : d
+      ));
+      setCheckedItems({});
+    } catch (err) {
+      alert('Error al cambiar tipo: ' + err.message);
+    }
+    setSavingType(false);
+    setEditingType(false);
+  };
+
   const skipSession = async (skip) => {
     if (!activeSession) return;
     setSkipping(true);
@@ -1015,9 +1045,29 @@ export const TrainingScreen = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div>
               <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{sel.day} {sel.date}</div>
-              <div style={{ fontSize: 12, color: TYPE_COLOR[sel.type] || '#8a5a3a' }}>
-                {sel.label}{sel.today && ' • HOY'}
-              </div>
+              {!editingType ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 12, color: TYPE_COLOR[sel.type] || '#8a5a3a' }}>
+                    {sel.label}{sel.today && ' • HOY'}
+                  </span>
+                  {activeSession && !activeSession.done && sel.type !== 'tournament' && (
+                    <button onClick={() => setEditingType(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', color: '#5a3a22', fontSize: 11, lineHeight: 1 }}>✎</button>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                  {['tennis', 'gym', 'rest'].map(t => (
+                    <button key={t} onClick={() => changeSessionType(t)} disabled={savingType} style={{
+                      padding: '4px 10px', borderRadius: 8, border: `1px solid ${TYPE_COLOR[t]}`,
+                      background: activeSession?.type === t ? `${TYPE_COLOR[t]}33` : 'transparent',
+                      color: TYPE_COLOR[t], fontSize: 11, fontWeight: 700, cursor: savingType ? 'not-allowed' : 'pointer',
+                    }}>
+                      {{ tennis: 'Cancha', gym: 'Gym', rest: 'Descanso' }[t]}
+                    </button>
+                  ))}
+                  <button onClick={() => setEditingType(false)} style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid #3a1808', background: 'transparent', color: '#5a3a22', fontSize: 11, cursor: 'pointer' }}>✕</button>
+                </div>
+              )}
             </div>
             {activeSession && (
               <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
