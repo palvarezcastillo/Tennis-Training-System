@@ -1051,7 +1051,7 @@ export const TrainingScreen = () => {
                     {sel.label}{sel.today && ' • HOY'}
                   </span>
                   {activeSession && !activeSession.done && sel.type !== 'tournament' && (
-                    <button onClick={() => setEditingType(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', color: '#5a3a22', fontSize: 11, lineHeight: 1 }}>✎</button>
+                    <button onClick={() => setEditingType(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', color: '#4caf50', fontSize: 16, lineHeight: 1 }}>✎</button>
                   )}
                 </div>
               ) : (
