@@ -177,6 +177,7 @@ export default function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
+    window.location.href = '/'
   }
 
   // Still checking session
