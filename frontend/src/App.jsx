@@ -37,23 +37,28 @@ function useIsDesktop() {
 
 const FONT = 'system-ui, -apple-system, sans-serif'
 
-function ProfilePanel() {
+function ProfilePanel({ user }) {
   const [open, setOpen]       = React.useState(false)
   const [form, setForm]       = React.useState({ name: '', birth_date: '', height_cm: '', weight_kg: '' })
   const [saving, setSaving]   = React.useState(false)
   const [saved, setSaved]     = React.useState(false)
 
+  // Datos que Google entrega en el login
+  const meta        = user?.user_metadata || {}
+  const googleName  = meta.full_name || meta.name || ''
+  const avatarUrl   = meta.avatar_url || meta.picture || ''
+
   React.useEffect(() => {
     apiFetch(`${import.meta.env.VITE_API_URL}/api/profile`)
       .then(r => r.ok ? r.json() : {})
       .then(d => setForm({
-        name:       d.name       || '',
+        name:       d.name       || googleName || '',
         birth_date: d.birth_date || '',
         height_cm:  d.height_cm  != null ? String(d.height_cm)  : '',
         weight_kg:  d.weight_kg  != null ? String(d.weight_kg)  : '',
       }))
       .catch(() => {})
-  }, [])
+  }, [googleName])
 
   const calcAge = (bd) => {
     if (!bd) return null
@@ -88,7 +93,13 @@ function ProfilePanel() {
   return (
     <div style={{ padding: '0 12px 4px' }}>
       <button onClick={() => setOpen(o => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(212,80,26,0.08)', border: '1px solid rgba(212,80,26,0.18)', borderRadius: 10, padding: '8px 12px', cursor: 'pointer', marginBottom: open ? 10 : 0 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#d4501a', textTransform: 'uppercase', letterSpacing: 1 }}>Mi Perfil</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {avatarUrl && (
+            <img src={avatarUrl} alt="" referrerPolicy="no-referrer"
+              style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(212,80,26,0.3)' }} />
+          )}
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#d4501a', textTransform: 'uppercase', letterSpacing: 1 }}>Mi Perfil</span>
+        </span>
         <span style={{ fontSize: 10, color: '#5a3a22' }}>{open ? '▲' : '▼'}</span>
       </button>
 
@@ -112,48 +123,6 @@ function ProfilePanel() {
           </button>
         </div>
       )}
-    </div>
-  )
-}
-
-function EmailConfirmationScreen({ email, onLogout }) {
-  const [resending, setResending] = React.useState(false)
-  const [resent, setResent]       = React.useState(false)
-
-  const resend = async () => {
-    setResending(true)
-    await supabase.auth.resend({ type: 'signup', email })
-    setResent(true)
-    setResending(false)
-  }
-
-  return (
-    <div style={{ minHeight: '100dvh', background: '#0d0805', fontFamily: FONT, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
-      <div style={{ width: '100%', maxWidth: 380, textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>✉️</div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Confirmá tu email</div>
-        <div style={{ fontSize: 13, color: '#8a5a3a', marginBottom: 6 }}>
-          Te enviamos un link de confirmación a:
-        </div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#d4501a', marginBottom: 24 }}>{email}</div>
-        <div style={{ fontSize: 12, color: '#5a3a22', marginBottom: 32, lineHeight: 1.6 }}>
-          Revisá tu bandeja de entrada (y la carpeta de spam). Una vez confirmado, volvé a iniciar sesión.
-        </div>
-
-        {resent && (
-          <div style={{ background: 'rgba(76,175,80,0.12)', border: '1px solid rgba(76,175,80,0.35)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#4caf50' }}>
-            ✓ Email reenviado. Revisá tu bandeja.
-          </div>
-        )}
-
-        <button onClick={resend} disabled={resending || resent} style={{ width: '100%', background: 'rgba(212,80,26,0.12)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 12, padding: 13, color: '#d4501a', fontSize: 13, fontWeight: 700, cursor: resending || resent ? 'not-allowed' : 'pointer', marginBottom: 12, opacity: resending ? 0.6 : 1 }}>
-          {resending ? 'Enviando...' : resent ? '✓ Email enviado' : 'Reenviar email de confirmación'}
-        </button>
-
-        <button onClick={onLogout} style={{ width: '100%', background: 'transparent', border: '1px solid #2a1208', borderRadius: 12, padding: 13, color: '#5a3a22', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-          Volver al inicio de sesión
-        </button>
-      </div>
     </div>
   )
 }
@@ -198,13 +167,6 @@ export default function App() {
     return <AuthScreen />
   }
 
-  // Email not confirmed (only for email/password signups, not OAuth)
-  const isEmailProvider = session.user?.app_metadata?.provider === 'email'
-  const emailConfirmed  = !!session.user?.email_confirmed_at
-  if (isEmailProvider && !emailConfirmed) {
-    return <EmailConfirmationScreen email={session.user.email} onLogout={handleLogout} />
-  }
-
   // Splash
   if (showSplash) {
     return <SplashScreen onEnter={() => setShowSplash(false)} />
@@ -247,7 +209,7 @@ export default function App() {
               </div>
             </div>
 
-            <ProfilePanel />
+            <ProfilePanel user={session.user} />
 
             <div style={{ width: '80%', height: 1, background: '#2a1208', margin: '4px auto 12px' }} />
 
@@ -306,6 +268,17 @@ export default function App() {
       height: '100dvh', maxWidth: 480, margin: '0 auto',
       background: '#0d0805', fontFamily: FONT,
     }}>
+      {/* Top header */}
+      <div style={{ flexShrink: 0, padding: '12px 4px 6px', borderBottom: '1px solid #2a1208' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px 8px' }}>
+          <TennisPlayer size={26} color="#d4501a" />
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px' }}>
+            MIRA <span style={{ color: '#d4501a', fontWeight: 300, letterSpacing: 2 }}>TENNIS</span>
+          </div>
+        </div>
+        <ProfilePanel user={session.user} />
+      </div>
+
       <div style={{ flex: 1, overflowY: 'auto', paddingTop: 16 }}>
         {renderScreen()}
       </div>
