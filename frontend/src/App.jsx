@@ -176,7 +176,10 @@ export default function App() {
   }, [])
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    try { await supabase.auth.signOut() } catch (_) {}
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-')) localStorage.removeItem(key)
+    })
     window.location.href = '/'
   }
 
