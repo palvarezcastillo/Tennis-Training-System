@@ -116,6 +116,48 @@ function ProfilePanel() {
   )
 }
 
+function EmailConfirmationScreen({ email, onLogout }) {
+  const [resending, setResending] = React.useState(false)
+  const [resent, setResent]       = React.useState(false)
+
+  const resend = async () => {
+    setResending(true)
+    await supabase.auth.resend({ type: 'signup', email })
+    setResent(true)
+    setResending(false)
+  }
+
+  return (
+    <div style={{ minHeight: '100dvh', background: '#0d0805', fontFamily: FONT, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+      <div style={{ width: '100%', maxWidth: 380, textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>✉️</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Confirmá tu email</div>
+        <div style={{ fontSize: 13, color: '#8a5a3a', marginBottom: 6 }}>
+          Te enviamos un link de confirmación a:
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#d4501a', marginBottom: 24 }}>{email}</div>
+        <div style={{ fontSize: 12, color: '#5a3a22', marginBottom: 32, lineHeight: 1.6 }}>
+          Revisá tu bandeja de entrada (y la carpeta de spam). Una vez confirmado, volvé a iniciar sesión.
+        </div>
+
+        {resent && (
+          <div style={{ background: 'rgba(76,175,80,0.12)', border: '1px solid rgba(76,175,80,0.35)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#4caf50' }}>
+            ✓ Email reenviado. Revisá tu bandeja.
+          </div>
+        )}
+
+        <button onClick={resend} disabled={resending || resent} style={{ width: '100%', background: 'rgba(212,80,26,0.12)', border: '1px solid rgba(212,80,26,0.3)', borderRadius: 12, padding: 13, color: '#d4501a', fontSize: 13, fontWeight: 700, cursor: resending || resent ? 'not-allowed' : 'pointer', marginBottom: 12, opacity: resending ? 0.6 : 1 }}>
+          {resending ? 'Enviando...' : resent ? '✓ Email enviado' : 'Reenviar email de confirmación'}
+        </button>
+
+        <button onClick={onLogout} style={{ width: '100%', background: 'transparent', border: '1px solid #2a1208', borderRadius: 12, padding: 13, color: '#5a3a22', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          Volver al inicio de sesión
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [session, setSession]   = React.useState(undefined) // undefined = loading
   const [showSplash, setShowSplash] = React.useState(true)
@@ -150,6 +192,13 @@ export default function App() {
   // Not logged in
   if (!session) {
     return <AuthScreen />
+  }
+
+  // Email not confirmed (only for email/password signups, not OAuth)
+  const isEmailProvider = session.user?.app_metadata?.provider === 'email'
+  const emailConfirmed  = !!session.user?.email_confirmed_at
+  if (isEmailProvider && !emailConfirmed) {
+    return <EmailConfirmationScreen email={session.user.email} onLogout={handleLogout} />
   }
 
   // Splash
