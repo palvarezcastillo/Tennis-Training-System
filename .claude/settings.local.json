@@ -18,7 +18,9 @@
       "PowerShell(Get-ChildItem node_modules -Directory | Where-Object { $_.Name -match 'esbuild|babel|sucrase' } | Select-Object -ExpandProperty Name; Get-ChildItem node_modules/.bin | Where-Object { $_.Name -match 'esbuild|babel|swc' } | Select-Object -ExpandProperty Name)",
       "PowerShell(node -e \"const b=require\\('./node_modules/@babel/core'\\); const fs=require\\('fs'\\); ['src/App.jsx','src/AuthScreen.jsx'].forEach\\(f=>{ b.transformSync\\(fs.readFileSync\\(f,'utf8'\\), { filename: f, presets: ['./node_modules/@babel/preset-react'] }\\); console.log\\('OK', f\\) }\\)\")",
       "PowerShell(node -e \"const p=require\\('./node_modules/@babel/parser'\\); const fs=require\\('fs'\\); ['src/App.jsx','src/AuthScreen.jsx'].forEach\\(f=>{ p.parse\\(fs.readFileSync\\(f,'utf8'\\),{sourceType:'module',plugins:['jsx']}\\); console.log\\('OK', f\\) }\\)\")",
-      "PowerShell(node -e \"const p=require\\('./node_modules/@babel/parser'\\); const fs=require\\('fs'\\); p.parse\\(fs.readFileSync\\('src/App.jsx','utf8'\\),{sourceType:'module',plugins:['jsx']}\\); console.log\\('OK App.jsx'\\)\")"
+      "PowerShell(node -e \"const p=require\\('./node_modules/@babel/parser'\\); const fs=require\\('fs'\\); p.parse\\(fs.readFileSync\\('src/App.jsx','utf8'\\),{sourceType:'module',plugins:['jsx']}\\); console.log\\('OK App.jsx'\\)\")",
+      "Bash(ls -la *.env* .env*)",
+      "Bash(cat .env.example)"
     ]
   }
 }

@@ -1,3 +1,10 @@
+-- ⚠️ DESACTUALIZADO — este archivo es previo al login y NO refleja la base real:
+--    usa `profiles` (la tabla real es `profile`), le falta la columna `user_id`
+--    en todas las tablas y deja RLS en "Allow all" (inseguro).
+--    Para asociar datos por usuario y asegurar RLS, usá:
+--        backend/supabase_auth_user_association.sql
+--    Se conserva solo como referencia histórica del esquema base.
+
 -- Run this SQL in the Supabase SQL Editor to create and migrate the required tables.
 
 -- ── tournaments ──────────────────────────────────────────────────────────────
