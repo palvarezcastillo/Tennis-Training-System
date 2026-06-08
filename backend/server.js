@@ -13,12 +13,24 @@ const profileRouter         = require('./routes/profile');
 
 const app = express();
 
+// Orígenes permitidos: localhost, una URL configurable (FRONTEND_URL) y
+// cualquier deploy de Vercel (*.vercel.app). La API está protegida por el
+// token Bearer, así que permitir los subdominios de Vercel es seguro.
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://tennis-training-system.vercel.app'
-  ],
+  origin: (origin, cb) => {
+    // sin origin = server-to-server / curl / health checks
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
+      return cb(null, true);
+    }
+    return cb(new Error(`Origin no permitido por CORS: ${origin}`));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
