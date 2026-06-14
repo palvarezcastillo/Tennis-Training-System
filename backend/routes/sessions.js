@@ -99,4 +99,19 @@ router.put('/:id', async (req, res) => {
   return res.json(data);
 });
 
+// DELETE /api/sessions/:id
+router.delete('/:id', async (req, res) => {
+  if (!dbCheck(res)) return;
+  const { id } = req.params;
+
+  const { error } = await supabase
+    .from('sessions')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', req.userId);
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.status(204).send();
+});
+
 module.exports = router;
