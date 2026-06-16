@@ -1,6 +1,7 @@
 const { Router }  = require('express');
 const Anthropic   = require('@anthropic-ai/sdk');
 const requireAuth = require('../middleware/auth');
+const supabase    = require('../middleware/supabase');
 
 const router = Router();
 router.use(requireAuth);
@@ -21,6 +22,31 @@ router.post('/chat', async (req, res) => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+  }
+
+  // Rate limiting por usuario (conteo diario en Supabase).
+  // Degradación elegante: si no hay DB configurada, no bloqueamos el chat.
+  if (supabase) {
+    // Límite diario configurable por env; si es inválido, usamos 30.
+    const parsedLimit = parseInt(process.env.AI_COACH_DAILY_LIMIT, 10);
+    const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : 30;
+
+    // Incremento atómico ANTES de llamar al modelo: contamos intentos.
+    // La RPC hace upsert del día de hoy y devuelve el total ya incrementado.
+    const { data: usedToday, error } = await supabase.rpc('increment_ai_coach_usage', { p_user_id: req.userId });
+
+    if (error) {
+      // Si falla el conteo, no dejamos al usuario sin coach: solo logueamos.
+      console.error('increment_ai_coach_usage error:', error.message);
+    } else if (usedToday > limit) {
+      // Con limit=30: mensaje 30 permitido, mensaje 31 (usedToday=31) bloqueado.
+      return res.status(429).json({
+        error: 'rate_limit_exceeded',
+        message: 'Llegaste al límite de mensajes del coach por hoy. Volvé a intentarlo mañana.',
+        limit,
+        used: usedToday,
+      });
+    }
   }
 
   const client = new Anthropic({ apiKey });

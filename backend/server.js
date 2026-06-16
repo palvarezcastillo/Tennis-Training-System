@@ -10,6 +10,7 @@ const tournamentsRouter     = require('./routes/tournaments');
 const sessionDetailsRouter  = require('./routes/session-details');
 const nutritionRouter       = require('./routes/nutrition');
 const profileRouter         = require('./routes/profile');
+const progressRouter        = require('./routes/progress');
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use('/api/tournaments',     tournamentsRouter);
 app.use('/api/session-details', sessionDetailsRouter);
 app.use('/api/nutrition',       nutritionRouter);
 app.use('/api/profile',         profileRouter);
+app.use('/api/progress',        progressRouter);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 

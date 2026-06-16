@@ -31,10 +31,6 @@ const TYPE_COLOR = {
   tournament: "#f0c040",
 };
 
-const PROGRESS_WEEKS = ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"];
-const WEIGHT_DATA = [84.2, 83.8, 83.5, 83.1, 82.9, 82.4, 82.0, 81.7];
-const PERFORMANCE_DATA = [62, 65, 64, 68, 70, 73, 75, 78];
-
 // ─── SPLASH SCREEN ─────────────────────────────────────────────────────────────
 export const SplashScreen = ({ onEnter }) => {
   const [quote] = React.useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]);
@@ -355,6 +351,7 @@ export const CalendarScreen = () => {
   const [savingPlan, setSavingPlan] = React.useState(false);
   const [planError, setPlanError] = React.useState(null);
   const [weekSessions, setWeekSessions] = React.useState([]);
+  const [confirmDeleteTournament, setConfirmDeleteTournament] = React.useState(null);
 
   const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const fmtDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
@@ -497,7 +494,8 @@ export const CalendarScreen = () => {
   const deleteTournament = (id) => {
     apiFetch(`${import.meta.env.VITE_API_URL}/api/tournaments/${id}`, { method: 'DELETE' })
       .then(() => setRefreshKey(k => k + 1))
-      .catch(err => setWeekError(err.toString()));
+      .catch(err => setWeekError(err.toString()))
+      .finally(() => setConfirmDeleteTournament(null));
   };
 
   const toggleDone = (session) => {
@@ -631,7 +629,7 @@ export const CalendarScreen = () => {
               <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{ev.name}</div>
               <div style={{ fontSize: 11, color: '#8a5a3a' }}>{ev.date}{ev.location ? ` · ${ev.location}` : ''}{ev.category ? ` · ${ev.category}` : ''}</div>
             </div>
-            <button onClick={() => deleteTournament(ev.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5a3a22', fontSize: 18, lineHeight: 1, padding: '0 4px' }}>×</button>
+            <button onClick={() => setConfirmDeleteTournament(ev)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5a3a22', fontSize: 18, lineHeight: 1, padding: '0 4px' }}>×</button>
           </div>
         ))
       )}
@@ -751,6 +749,25 @@ export const CalendarScreen = () => {
           </div>
         </div>
       )}
+
+      {confirmDeleteTournament && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 24 }} onClick={() => setConfirmDeleteTournament(null)}>
+          <div style={{ background: '#2a160c', width: '100%', maxWidth: 360, borderRadius: 16, padding: 24 }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>¿Eliminar este torneo?</div>
+            <div style={{ fontSize: 13, color: '#8a5a3a', marginBottom: 20 }}>
+              {confirmDeleteTournament.name ? `Se eliminará "${confirmDeleteTournament.name}". ` : ''}Esta acción no se puede deshacer.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setConfirmDeleteTournament(null)} style={{ flex: 1, background: '#2a1208', border: '1px solid #3a1808', borderRadius: 12, padding: 12, color: '#f0dac8', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={() => deleteTournament(confirmDeleteTournament.id)} style={{ flex: 1, background: 'linear-gradient(135deg, #a03010, #d4501a)', border: 'none', borderRadius: 12, padding: 12, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -780,6 +797,10 @@ export const TrainingScreen = () => {
   const [skipError, setSkipError]     = React.useState(null);
   const [editingType, setEditingType] = React.useState(false);
   const [savingType, setSavingType]   = React.useState(false);
+  const [refreshKey, setRefreshKey]   = React.useState(0);
+  const [confirmDeleteSession, setConfirmDeleteSession] = React.useState(false);
+  const [deletingSession, setDeletingSession] = React.useState(false);
+  const [deleteSessionError, setDeleteSessionError] = React.useState(null);
 
   const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const fmtDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
@@ -853,7 +874,7 @@ export const TrainingScreen = () => {
         if (weekOffset === 0) setWeekData(WEEK_DATA);
       })
       .finally(() => setLoadingWeek(false));
-  }, [weekOffset]);
+  }, [weekOffset, refreshKey]);
 
   React.useEffect(() => {
     setActiveSessionIdx(0);
@@ -992,6 +1013,21 @@ export const TrainingScreen = () => {
       setSkipError(String(err));
     }
     setSkipping(false);
+  };
+
+  const deleteSession = async () => {
+    if (!activeSession) return;
+    setDeletingSession(true);
+    setDeleteSessionError(null);
+    try {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/${activeSession.id}`, { method: 'DELETE' });
+      if (!res.ok && res.status !== 204) throw new Error(res.statusText || 'No se pudo eliminar');
+      setConfirmDeleteSession(false);
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      setDeleteSessionError(String(err));
+    }
+    setDeletingSession(false);
   };
 
   const accentColor = activeSession?.type === 'gym' ? '#e87a3c' : '#d4501a';
@@ -1359,6 +1395,37 @@ export const TrainingScreen = () => {
               <div style={{ fontSize: 11, color: '#5a8a5a', marginTop: 4 }}>Guardada en RPE {rpe}/10</div>
             </div>
           )}
+
+          {/* Delete session */}
+          {activeSession && (
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #3a1808', textAlign: 'center' }}>
+              {deleteSessionError && (
+                <div style={{ background: 'rgba(212,80,26,0.08)', border: '1px solid rgba(212,80,26,0.25)', borderRadius: 10, padding: '8px 14px', marginBottom: 10, fontSize: 11, color: '#e87a3c' }}>
+                  No se pudo eliminar la sesión. Intentá de nuevo.
+                </div>
+              )}
+              <button onClick={() => { setDeleteSessionError(null); setConfirmDeleteSession(true); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a4a3a', fontSize: 12, fontWeight: 600, padding: '4px 8px' }}>
+                🗑 Eliminar sesión
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {confirmDeleteSession && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 24 }} onClick={() => { if (!deletingSession) setConfirmDeleteSession(false); }}>
+          <div style={{ background: '#2a160c', width: '100%', maxWidth: 360, borderRadius: 16, padding: 24 }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>¿Eliminar esta sesión?</div>
+            <div style={{ fontSize: 13, color: '#8a5a3a', marginBottom: 20 }}>Esta acción no se puede deshacer.</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setConfirmDeleteSession(false)} disabled={deletingSession} style={{ flex: 1, background: '#2a1208', border: '1px solid #3a1808', borderRadius: 12, padding: 12, color: '#f0dac8', fontSize: 14, fontWeight: 700, cursor: deletingSession ? 'not-allowed' : 'pointer', opacity: deletingSession ? 0.6 : 1 }}>
+                Cancelar
+              </button>
+              <button onClick={deleteSession} disabled={deletingSession} style={{ flex: 1, background: 'linear-gradient(135deg, #a03010, #d4501a)', border: 'none', borderRadius: 12, padding: 12, color: '#fff', fontSize: 14, fontWeight: 800, cursor: deletingSession ? 'not-allowed' : 'pointer', opacity: deletingSession ? 0.7 : 1 }}>
+                {deletingSession ? 'Eliminando...' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1709,80 +1776,135 @@ export const FoodScreen = () => {
 // ─── PROGRESS ─────────────────────────────────────────────────────────────────
 export const ProgressScreen = () => {
   const [activeMetric, setActiveMetric] = React.useState('performance');
+  const [data, setData] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
 
-  const maxW = Math.max(...WEIGHT_DATA);
-  const minW = Math.min(...WEIGHT_DATA);
+  React.useEffect(() => {
+    setLoading(true);
+    setError(null);
+    apiFetch(`${import.meta.env.VITE_API_URL}/api/progress`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(d => setData(d))
+      .catch(err => setError(err.toString()))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const achievements = [
-    { label: '8 semanas seguidas entrenando', icon: 'fire', color: '#d4501a', unlocked: true },
-    { label: 'Primer torneo del año', icon: 'trophy', color: '#f0c040', unlocked: true },
-    { label: 'Pérdida de 2.5 kg', icon: 'target', color: '#4caf50', unlocked: true },
-    { label: 'Servicio al 70% de efectividad', icon: 'zap', color: '#e87a3c', unlocked: false },
-    { label: 'Top 10 del ranking club', icon: 'star', color: '#a060d4', unlocked: false },
-  ];
+  const hasWeight = Array.isArray(data?.weightData) && data.weightData.length > 0;
+  const hasPerformance = Array.isArray(data?.performanceData) && data.performanceData.length > 0;
+
+  // Si la métrica activa no tiene datos pero la otra sí, conmutamos.
+  React.useEffect(() => {
+    if (!data || !data.hasData) return;
+    if (activeMetric === 'weight' && !hasWeight && hasPerformance) setActiveMetric('performance');
+    else if (activeMetric === 'performance' && !hasPerformance && hasWeight) setActiveMetric('weight');
+  }, [data, hasWeight, hasPerformance]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ padding: '0 16px 20px' }}>
       <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 6 }}>Progreso</div>
       <div style={{ fontSize: 12, color: '#8a5a3a', marginBottom: 20 }}>Últimas 8 semanas</div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {[{ id: 'performance', label: 'Rendimiento' }, { id: 'weight', label: 'Peso' }].map(m => (
-          <button key={m.id} onClick={() => setActiveMetric(m.id)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', background: activeMetric === m.id ? 'rgba(212,80,26,0.2)' : '#2a160c', color: activeMetric === m.id ? '#d4501a' : '#8a5a3a', fontSize: 13, fontWeight: 700, cursor: 'pointer', borderBottom: activeMetric === m.id ? '2px solid #d4501a' : '2px solid transparent' }}>
-            {m.label}
-          </button>
-        ))}
-      </div>
+      {loading ? (
+        <div style={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontSize: 13, color: '#5a3a22' }}>Cargando progreso...</div>
+        </div>
+      ) : error ? (
+        <div style={{ background: 'rgba(212,80,26,0.08)', border: '1px solid rgba(212,80,26,0.25)', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#e87a3c' }}>
+          No se pudo cargar el progreso. Intentá de nuevo más tarde.
+        </div>
+      ) : !data || !data.hasData ? (
+        <div style={{ background: '#2a160c', borderRadius: 16, padding: 20, textAlign: 'center' }}>
+          <div style={{ fontSize: 13, color: '#8a5a3a', lineHeight: 1.5 }}>
+            Todavía no hay datos de progreso. Empezá a registrar tus entrenamientos y aparecerán acá.
+          </div>
+        </div>
+      ) : (() => {
+        const metricData = activeMetric === 'weight' ? data.weightData : data.performanceData;
+        const weeks = Array.isArray(data.weeks) ? data.weeks : [];
+        const numeric = metricData.filter(v => v != null && !Number.isNaN(v));
+        const mn = numeric.length ? Math.min(...numeric) : 0;
+        const mx = numeric.length ? Math.max(...numeric) : 0;
 
-      <div style={{ background: '#2a160c', borderRadius: 16, padding: 16, marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', height: 100, gap: 4 }}>
-          {(activeMetric === 'weight' ? WEIGHT_DATA : PERFORMANCE_DATA).map((val, i) => {
-            const data = activeMetric === 'weight' ? WEIGHT_DATA : PERFORMANCE_DATA;
-            const mn = Math.min(...data); const mx = Math.max(...data);
-            const pct = (val - mn) / (mx - mn + 0.01);
-            const h = 20 + pct * 70;
-            const isLast = i === data.length - 1;
-            return (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                <div style={{ fontSize: 9, color: isLast ? '#d4501a' : 'transparent', fontWeight: 700 }}>{val}{activeMetric === 'weight' ? 'kg' : '%'}</div>
-                <div style={{ width: '100%', height: h, background: isLast ? 'linear-gradient(180deg, #d4501a, #8a2a0a)' : '#2a1808', borderRadius: '4px 4px 0 0', transition: 'height 0.6s ease' }} />
-                <div style={{ fontSize: 9, color: '#5a3a22' }}>{PROGRESS_WEEKS[i]}</div>
+        // Primer y último valor no-null para el resumen.
+        const firstVal = metricData.find(v => v != null && !Number.isNaN(v));
+        let lastVal = null;
+        for (let i = metricData.length - 1; i >= 0; i--) {
+          if (metricData[i] != null && !Number.isNaN(metricData[i])) { lastVal = metricData[i]; break; }
+        }
+        const lastIdx = (() => {
+          for (let i = metricData.length - 1; i >= 0; i--) {
+            if (metricData[i] != null && !Number.isNaN(metricData[i])) return i;
+          }
+          return -1;
+        })();
+        const canSummarize = numeric.length >= 2 && firstVal != null && lastVal != null;
+        const improved = canSummarize && (activeMetric === 'weight' ? lastVal < firstVal : lastVal > firstVal);
+
+        const tabs = [];
+        if (hasPerformance) tabs.push({ id: 'performance', label: 'Rendimiento' });
+        if (hasWeight) tabs.push({ id: 'weight', label: 'Peso' });
+
+        const stats = data.stats || {};
+
+        return (
+          <>
+            {tabs.length > 1 && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                {tabs.map(m => (
+                  <button key={m.id} onClick={() => setActiveMetric(m.id)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', background: activeMetric === m.id ? 'rgba(212,80,26,0.2)' : '#2a160c', color: activeMetric === m.id ? '#d4501a' : '#8a5a3a', fontSize: 13, fontWeight: 700, cursor: 'pointer', borderBottom: activeMetric === m.id ? '2px solid #d4501a' : '2px solid transparent' }}>
+                    {m.label}
+                  </button>
+                ))}
               </div>
-            );
-          })}
-        </div>
-        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 11, color: '#8a5a3a' }}>
-            {activeMetric === 'weight' ? `↓ ${(maxW - minW).toFixed(1)} kg en 8 semanas` : `↑ ${PERFORMANCE_DATA[7] - PERFORMANCE_DATA[0]}% de mejora`}
-          </div>
-          <div style={{ fontSize: 11, color: '#4caf50', fontWeight: 700 }}>↑ Progresando</div>
-        </div>
-      </div>
+            )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
-        {[
-          { label: 'Sesiones', value: '31', sub: 'en 8 sem.', color: '#d4501a' },
-          { label: 'Torneos', value: '2', sub: 'jugados', color: '#f0c040' },
-          { label: 'Streak', value: '12', sub: 'días seguidos', color: '#4caf50' },
-        ].map(s => (
-          <div key={s.label} style={{ background: '#2a160c', borderRadius: 14, padding: '14px 10px', textAlign: 'center' }}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>{s.label}</div>
-            <div style={{ fontSize: 10, color: '#5a3a22' }}>{s.sub}</div>
-          </div>
-        ))}
-      </div>
+            <div style={{ background: '#2a160c', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', height: 100, gap: 4 }}>
+                {metricData.map((val, i) => {
+                  const isNull = val == null || Number.isNaN(val);
+                  const pct = isNull || mx === mn ? 0 : (val - mn) / (mx - mn + 0.01);
+                  const h = isNull ? 6 : 20 + pct * 70;
+                  const isLast = i === lastIdx;
+                  return (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <div style={{ fontSize: 9, color: isLast && !isNull ? '#d4501a' : 'transparent', fontWeight: 700 }}>{isNull ? '' : `${val}${activeMetric === 'weight' ? 'kg' : '%'}`}</div>
+                      <div style={{ width: '100%', height: h, background: isNull ? 'rgba(90,58,34,0.25)' : (isLast ? 'linear-gradient(180deg, #d4501a, #8a2a0a)' : '#2a1808'), borderRadius: '4px 4px 0 0', transition: 'height 0.6s ease' }} />
+                      <div style={{ fontSize: 9, color: '#5a3a22' }}>{weeks[i] || ''}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              {(canSummarize || improved) && (
+                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
+                  {canSummarize && (
+                    <div style={{ fontSize: 11, color: '#8a5a3a' }}>
+                      {activeMetric === 'weight'
+                        ? `↓ ${Math.abs(firstVal - lastVal).toFixed(1)} kg`
+                        : `↑ ${(lastVal - firstVal)}% de mejora`}
+                    </div>
+                  )}
+                  {improved && <div style={{ fontSize: 11, color: '#4caf50', fontWeight: 700 }}>↑ Progresando</div>}
+                </div>
+              )}
+            </div>
 
-      <div style={{ fontSize: 12, color: '#8a5a3a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Logros</div>
-      {achievements.map((a, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#2a160c', borderRadius: 12, padding: '12px 14px', marginBottom: 8, opacity: a.unlocked ? 1 : 0.4 }}>
-          <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${a.color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name={a.icon} size={18} color={a.color} />
-          </div>
-          <div style={{ flex: 1, fontSize: 13, color: a.unlocked ? '#f0dac8' : '#5a3a22', fontWeight: a.unlocked ? 600 : 400 }}>{a.label}</div>
-          {a.unlocked && <Icon name="check" size={16} color="#4caf50" />}
-        </div>
-      ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              {[
+                { label: 'Sesiones', value: stats.sessions ?? 0, sub: 'en 8 sem.', color: '#d4501a' },
+                { label: 'Torneos', value: stats.tournaments ?? 0, sub: 'jugados', color: '#f0c040' },
+                { label: 'Streak', value: stats.streak ?? 0, sub: 'días seguidos', color: '#4caf50' },
+              ].map(s => (
+                <div key={s.label} style={{ background: '#2a160c', borderRadius: 14, padding: '14px 10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: s.color }}>{s.value}</div>
+                  <div style={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>{s.label}</div>
+                  <div style={{ fontSize: 10, color: '#5a3a22' }}>{s.sub}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 };
@@ -1858,8 +1980,14 @@ export const AIScreen = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, context: coachContext }),
       });
-      const data = res.ok ? await res.json() : null;
-      setMessages(prev => [...prev, { role: 'assistant', text: data?.reply || 'No pude conectarme ahora. Intentá de nuevo.' }]);
+      if (res.status === 429) {
+        const body = await res.json().catch(() => null);
+        const limitMsg = body?.message || 'Llegaste al límite de mensajes del coach por hoy. Volvé a intentarlo mañana.';
+        setMessages(prev => [...prev, { role: 'assistant', text: limitMsg }]);
+      } else {
+        const data = res.ok ? await res.json() : null;
+        setMessages(prev => [...prev, { role: 'assistant', text: data?.reply || 'No pude conectarme ahora. Intentá de nuevo.' }]);
+      }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', text: 'No pude conectarme ahora. Intentá de nuevo.' }]);
     }
