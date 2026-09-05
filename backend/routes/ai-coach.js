@@ -6,7 +6,7 @@ const supabase    = require('../middleware/supabase');
 const router = Router();
 router.use(requireAuth);
 
-// Modelo configurable por env (Railway) para poder cambiar Sonnet <-> Haiku sin tocar código.
+// Modelo configurable por env (Vercel) para poder cambiar Sonnet <-> Haiku sin tocar código.
 // Ojo: los IDs de los modelos nuevos NO llevan fecha al final.
 //   claude-sonnet-5  -> mejor calidad, ~2x el costo de Haiku
 //   claude-haiku-4-5 -> más barato y rápido
