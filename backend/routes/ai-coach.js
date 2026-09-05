@@ -6,6 +6,12 @@ const supabase    = require('../middleware/supabase');
 const router = Router();
 router.use(requireAuth);
 
+// Modelo configurable por env (Railway) para poder cambiar Sonnet <-> Haiku sin tocar código.
+// Ojo: los IDs de los modelos nuevos NO llevan fecha al final.
+//   claude-sonnet-5  -> mejor calidad, ~2x el costo de Haiku
+//   claude-haiku-4-5 -> más barato y rápido
+const MODEL = process.env.AI_COACH_MODEL || 'claude-sonnet-5';
+
 const SYSTEM_PROMPT = `Sos un coach de tenis y nutrición experto llamado MIRA Coach.
 El atleta es Mira, nivel Competitivo-Amateur, juega 2 días de tenis y 2 días de gym por semana.
 Respondé siempre en español rioplatense, de manera directa, motivadora y precisa.
@@ -57,8 +63,9 @@ router.post('/chat', async (req, res) => {
 
   try {
     const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 256,
+      model: MODEL,
+      max_tokens: 512,
+      thinking: { type: 'disabled' },
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userContent }],
     });
