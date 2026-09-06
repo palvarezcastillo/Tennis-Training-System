@@ -44,6 +44,26 @@ export const MiniBar = ({ value, max, color = "#d4501a" }) => (
   </div>
 );
 
+export const Sparkline = ({ data = [], color = "#d4501a", width = 120, height = 32, min, max }) => {
+  const pts = data.map((v, i) => ({ v, i })).filter(p => p.v != null && !Number.isNaN(p.v));
+  if (pts.length < 2) return <svg width={width} height={height} />;
+  const vals = pts.map(p => p.v);
+  const lo = min != null ? min : Math.min(...vals);
+  const hi = max != null ? max : Math.max(...vals);
+  const span = (hi - lo) || 1;
+  const n = (data.length - 1) || 1;
+  const x = (i) => (i / n) * (width - 2) + 1;
+  const y = (v) => height - 2 - ((v - lo) / span) * (height - 4);
+  const d = pts.map((p, k) => `${k === 0 ? 'M' : 'L'} ${x(p.i).toFixed(1)} ${y(p.v).toFixed(1)}`).join(' ');
+  const last = pts[pts.length - 1];
+  return (
+    <svg width={width} height={height} style={{ display: 'block' }}>
+      <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={x(last.i)} cy={y(last.v)} r="2.5" fill={color} />
+    </svg>
+  );
+};
+
 const ICONS = {
   home: <><path d="M3 12L12 3L21 12V21H15V15H9V21H3V12Z" strokeWidth="2" strokeLinejoin="round" fill="none"/></>,
   calendar: <><rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2" fill="none"/><path d="M3 9H21M8 2V6M16 2V6" strokeWidth="2" strokeLinecap="round"/></>,
