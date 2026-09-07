@@ -1,5 +1,5 @@
 import React from 'react'
-import { TennisPlayer, RingChart, MiniBar, Sparkline, Icon } from './shared.jsx'
+import { TennisPlayer, RingChart, MiniBar, Icon } from './shared.jsx'
 import { apiFetch } from './api.js'
 
 // ─── DATA & STATE ─────────────────────────────────────────────────────────────
@@ -30,79 +30,6 @@ const TYPE_COLOR = {
   rest: "#5a3a22",
   tournament: "#f0c040",
 };
-
-// ─── PLAN SESSION MODAL ───────────────────────────────────────────────────────
-// Compartido por CalendarScreen y TrainingScreen. El form vive en el padre para
-// que cada pantalla decida con qué fecha se abre y qué hace al guardar.
-const PlanSessionModal = ({ form, setForm, saving, error, onSave, onClose }) => (
-  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }} onClick={onClose}>
-    <div style={{ background: '#2a160c', width: '100%', borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-      <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Planificar día</div>
-
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 6 }}>Tipo</div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {[
-            { val: 'tennis', label: 'Tenis', color: '#d4501a' },
-            { val: 'gym', label: 'Gym', color: '#e87a3c' },
-            { val: 'rest', label: 'Descanso', color: '#a060d4' },
-          ].map(({ val, label, color }) => (
-            <button key={val} onClick={() => setForm(f => ({ ...f, type: val }))}
-              style={{ flex: 1, padding: '8px 2px', borderRadius: 10, border: `1px solid ${form.type === val ? color : '#3a1808'}`, background: form.type === val ? `${color}22` : '#2a1208', color: form.type === val ? color : '#5a3a22', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Fecha</div>
-          <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-            style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Hora</div>
-          <input type="time" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))}
-            style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Duración (minutos)</div>
-        <input type="number" min="1" max="480" value={form.duration_min} onChange={e => setForm(f => ({ ...f, duration_min: Number(e.target.value) }))}
-          style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
-      </div>
-
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 6 }}>RPE — <span style={{ color: '#f0dac8', fontWeight: 700 }}>{form.rpe}</span>/10</div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {[1,2,3,4,5,6,7,8,9,10].map(n => (
-            <button key={n} onClick={() => setForm(f => ({ ...f, rpe: n }))}
-              style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', background: form.rpe === n ? '#d4501a' : '#2a1208', color: form.rpe === n ? '#fff' : '#5a3a22', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              {n}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Notas</div>
-        <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Opcional..."
-          style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }} />
-      </div>
-
-      {error && (
-        <div style={{ background: 'rgba(212,80,26,0.12)', border: '1px solid rgba(212,80,26,0.4)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#e87a3c' }}>
-          Error: {error}
-        </div>
-      )}
-      <button onClick={onSave} disabled={saving} style={{ width: '100%', background: 'linear-gradient(135deg, #a03010, #d4501a)', border: 'none', borderRadius: 12, padding: 14, color: '#fff', fontSize: 15, fontWeight: 800, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
-        {saving ? 'Guardando...' : 'Guardar sesión'}
-      </button>
-    </div>
-  </div>
-);
 
 // ─── SPLASH SCREEN ─────────────────────────────────────────────────────────────
 export const SplashScreen = ({ onEnter }) => {
@@ -172,7 +99,6 @@ export const DashboardScreen = ({ setScreen }) => {
   const [weekMeals, setWeekMeals]       = React.useState([]);
   const [monthSessions, setMonthSessions] = React.useState([]);
   const [nextTournament, setNextTournament] = React.useState(null);
-  const [progress, setProgress]         = React.useState(null);
   const [loading, setLoading]           = React.useState(true);
 
   const localDate = (d) =>
@@ -709,14 +635,73 @@ export const CalendarScreen = () => {
       )}
 
       {planModal && (
-        <PlanSessionModal
-          form={planForm}
-          setForm={setPlanForm}
-          saving={savingPlan}
-          error={planError}
-          onSave={savePlan}
-          onClose={() => { setPlanModal(false); setPlanError(null); }}
-        />
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }} onClick={() => { setPlanModal(false); setPlanError(null); }}>
+          <div style={{ background: '#2a160c', width: '100%', borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 }}>Planificar día</div>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 6 }}>Tipo</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[
+                  { val: 'tennis', label: 'Tenis', color: '#d4501a' },
+                  { val: 'gym', label: 'Gym', color: '#e87a3c' },
+                  { val: 'rest', label: 'Descanso', color: '#a060d4' },
+                ].map(({ val, label, color }) => (
+                  <button key={val} onClick={() => setPlanForm(f => ({ ...f, type: val }))}
+                    style={{ flex: 1, padding: '8px 2px', borderRadius: 10, border: `1px solid ${planForm.type === val ? color : '#3a1808'}`, background: planForm.type === val ? `${color}22` : '#2a1208', color: planForm.type === val ? color : '#5a3a22', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Fecha</div>
+                <input type="date" value={planForm.date} onChange={e => setPlanForm(f => ({ ...f, date: e.target.value }))}
+                  style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Hora</div>
+                <input type="time" value={planForm.time} onChange={e => setPlanForm(f => ({ ...f, time: e.target.value }))}
+                  style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Duración (minutos)</div>
+              <input type="number" min="1" max="480" value={planForm.duration_min} onChange={e => setPlanForm(f => ({ ...f, duration_min: Number(e.target.value) }))}
+                style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 6 }}>RPE — <span style={{ color: '#f0dac8', fontWeight: 700 }}>{planForm.rpe}</span>/10</div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                  <button key={n} onClick={() => setPlanForm(f => ({ ...f, rpe: n }))}
+                    style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', background: planForm.rpe === n ? '#d4501a' : '#2a1208', color: planForm.rpe === n ? '#fff' : '#5a3a22', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: '#8a5a3a', marginBottom: 4 }}>Notas</div>
+              <textarea value={planForm.notes} onChange={e => setPlanForm(f => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Opcional..."
+                style={{ width: '100%', background: '#2a1208', border: '1px solid #3a1808', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }} />
+            </div>
+
+            {planError && (
+              <div style={{ background: 'rgba(212,80,26,0.12)', border: '1px solid rgba(212,80,26,0.4)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#e87a3c' }}>
+                Error: {planError}
+              </div>
+            )}
+            <button onClick={savePlan} disabled={savingPlan} style={{ width: '100%', background: 'linear-gradient(135deg, #a03010, #d4501a)', border: 'none', borderRadius: 12, padding: 14, color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
+              {savingPlan ? 'Guardando...' : 'Guardar sesión'}
+            </button>
+          </div>
+        </div>
       )}
 
       {showAddTournament && (
@@ -816,10 +801,6 @@ export const TrainingScreen = () => {
   const [confirmDeleteSession, setConfirmDeleteSession] = React.useState(false);
   const [deletingSession, setDeletingSession] = React.useState(false);
   const [deleteSessionError, setDeleteSessionError] = React.useState(null);
-  const [planModal, setPlanModal]     = React.useState(false);
-  const [planForm, setPlanForm]       = React.useState({ type: 'tennis', date: '', time: '', duration_min: 60, rpe: 7, notes: '' });
-  const [savingPlan, setSavingPlan]   = React.useState(false);
-  const [planError, setPlanError]     = React.useState(null);
 
   const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const fmtDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
@@ -927,32 +908,6 @@ export const TrainingScreen = () => {
   ];
 
   const toggleCheck = (key) => setCheckedItems(prev => ({ ...prev, [key]: !prev[key] }));
-
-  // Abre el modal ya apuntando al día que está seleccionado en la semana.
-  const openPlanModal = () => {
-    setPlanForm(f => ({ ...f, date: sel.fullDate || '', time: '' }));
-    setPlanError(null);
-    setPlanModal(true);
-  };
-
-  const savePlan = () => {
-    if (!planForm.date || !planForm.type) return;
-    setSavingPlan(true);
-    setPlanError(null);
-    apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: planForm.date, type: planForm.type, duration_min: planForm.duration_min, rpe: planForm.rpe, notes: planForm.notes, done: false }),
-    })
-      .then(r => r.ok ? r.json() : r.json().then(body => Promise.reject(body.error || r.statusText)))
-      .then(() => {
-        setPlanModal(false);
-        setPlanError(null);
-        setRefreshKey(k => k + 1); // recarga la semana para que aparezca la sesión nueva
-      })
-      .catch(err => setPlanError(String(err)))
-      .finally(() => setSavingPlan(false));
-  };
 
   const completeSession = async () => {
     if (!activeSession) return;
@@ -1201,7 +1156,7 @@ export const TrainingScreen = () => {
           {!activeSession && (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{ fontSize: 13, color: '#5a3a22', marginBottom: 12 }}>Sin sesión planificada</div>
-              <button onClick={openPlanModal} style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.35)', borderRadius: 12, padding: '10px 20px', cursor: 'pointer', color: '#d4501a', fontSize: 13, fontWeight: 700 }}>
+              <button style={{ background: 'rgba(212,80,26,0.15)', border: '1px solid rgba(212,80,26,0.35)', borderRadius: 12, padding: '10px 20px', cursor: 'pointer', color: '#d4501a', fontSize: 13, fontWeight: 700 }}>
                 + Planificar sesión
               </button>
             </div>
@@ -1472,17 +1427,6 @@ export const TrainingScreen = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {planModal && (
-        <PlanSessionModal
-          form={planForm}
-          setForm={setPlanForm}
-          saving={savingPlan}
-          error={planError}
-          onSave={savePlan}
-          onClose={() => { setPlanModal(false); setPlanError(null); }}
-        />
       )}
     </div>
   );
@@ -1846,33 +1790,15 @@ export const ProgressScreen = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  // Definición de cada métrica de evolución. `fixed` = escala de eje fija (honesta);
-  // null = escala ajustada a los datos con holgura. `better` define el color del delta.
-  const METRICS = [
-    { id: 'performance', label: 'Rendimiento', unit: '%',  color: '#d4501a', fixed: [0, 100], better: 'up',      caption: 'Adherencia: % de sesiones cumplidas por semana' },
-    { id: 'load',        label: 'Carga',       unit: '',   color: '#e87a3c', fixed: null,     better: 'neutral', caption: 'Carga = minutos × RPE de sesiones cumplidas' },
-    { id: 'rpe',         label: 'RPE',         unit: '',   color: '#f0c040', fixed: [0, 10],  better: 'neutral', caption: 'RPE promedio semanal (esfuerzo percibido, 1–10)' },
-    { id: 'weight',      label: 'Peso',        unit: 'kg', color: '#a060d4', fixed: null,     better: 'down',    caption: 'Peso corporal' },
-  ];
-  const seriesFor = (id) => ({
-    performance: data?.performanceData,
-    load:        data?.loadData,
-    rpe:         data?.rpeData,
-    weight:      data?.weightData,
-  }[id]);
-  const hasSeries = (id) => {
-    const s = seriesFor(id);
-    return Array.isArray(s) && s.some(v => v != null && !Number.isNaN(v));
-  };
+  const hasWeight = Array.isArray(data?.weightData) && data.weightData.length > 0;
+  const hasPerformance = Array.isArray(data?.performanceData) && data.performanceData.length > 0;
 
-  // Si la métrica activa se quedó sin datos, conmutamos a la primera disponible.
+  // Si la métrica activa no tiene datos pero la otra sí, conmutamos.
   React.useEffect(() => {
     if (!data || !data.hasData) return;
-    if (!hasSeries(activeMetric)) {
-      const first = METRICS.find(m => hasSeries(m.id));
-      if (first) setActiveMetric(first.id);
-    }
-  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (activeMetric === 'weight' && !hasWeight && hasPerformance) setActiveMetric('performance');
+    else if (activeMetric === 'performance' && !hasPerformance && hasWeight) setActiveMetric('weight');
+  }, [data, hasWeight, hasPerformance]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ padding: '0 16px 20px' }}>
@@ -1894,68 +1820,39 @@ export const ProgressScreen = () => {
           </div>
         </div>
       ) : (() => {
-        const cfg = METRICS.find(m => m.id === activeMetric) || METRICS[0];
-        const metricData = seriesFor(activeMetric) || [];
+        const metricData = activeMetric === 'weight' ? data.weightData : data.performanceData;
         const weeks = Array.isArray(data.weeks) ? data.weeks : [];
         const numeric = metricData.filter(v => v != null && !Number.isNaN(v));
+        const mn = numeric.length ? Math.min(...numeric) : 0;
+        const mx = numeric.length ? Math.max(...numeric) : 0;
 
-        // Escala del eje: fija para % y RPE (honesta); ajustada con holgura para carga y peso.
-        let axisMin, axisMax;
-        if (cfg.fixed) {
-          [axisMin, axisMax] = cfg.fixed;
-        } else if (numeric.length) {
-          const dMin = Math.min(...numeric), dMax = Math.max(...numeric);
-          if (activeMetric === 'weight') {
-            const pad = Math.max(1, (dMax - dMin) * 0.5);
-            axisMin = Math.floor(dMin - pad);
-            axisMax = Math.ceil(dMax + pad);
-          } else { // carga: base 0, tope con holgura
-            axisMin = 0;
-            axisMax = Math.max(1, Math.ceil(dMax * 1.1));
-          }
-        } else { axisMin = 0; axisMax = 1; }
-        const span = (axisMax - axisMin) || 1;
-
-        // Último valor con dato (número grande y barra resaltada).
-        let lastIdx = -1;
+        // Primer y último valor no-null para el resumen.
+        const firstVal = metricData.find(v => v != null && !Number.isNaN(v));
+        let lastVal = null;
         for (let i = metricData.length - 1; i >= 0; i--) {
-          if (metricData[i] != null && !Number.isNaN(metricData[i])) { lastIdx = i; break; }
+          if (metricData[i] != null && !Number.isNaN(metricData[i])) { lastVal = metricData[i]; break; }
         }
-        const lastVal = lastIdx >= 0 ? metricData[lastIdx] : null;
+        const lastIdx = (() => {
+          for (let i = metricData.length - 1; i >= 0; i--) {
+            if (metricData[i] != null && !Number.isNaN(metricData[i])) return i;
+          }
+          return -1;
+        })();
+        const canSummarize = numeric.length >= 2 && firstVal != null && lastVal != null;
+        const improved = canSummarize && (activeMetric === 'weight' ? lastVal < firstVal : lastVal > firstVal);
 
-        // Mejora: media móvil de las últimas 4 semanas vs las 4 anteriores.
-        // Comparar promedios (y no semana-contra-semana, ni última-contra-primera)
-        // evita que una sola semana floja o un baseline en 0 den vuelta el número.
-        // La diferencia va en la unidad de la métrica —para Rendimiento, puntos
-        // porcentuales— así nunca dividimos por un baseline que puede ser 0.
-        const MIN_WEEKS_PER_BLOCK = 2; // con menos de 2 semanas por bloque el promedio no dice nada
-        const valsOf = (arr) => arr.filter(v => v != null && !Number.isNaN(v));
-        const meanOf = (arr) => {
-          const vals = valsOf(arr);
-          return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
-        };
-        const recentBlock = metricData.slice(-4);
-        const priorBlock  = metricData.slice(-8, -4);
-        const enoughData =
-          valsOf(recentBlock).length >= MIN_WEEKS_PER_BLOCK &&
-          valsOf(priorBlock).length  >= MIN_WEEKS_PER_BLOCK;
-        const recentAvg = enoughData ? meanOf(recentBlock) : null;
-        const priorAvg  = enoughData ? meanOf(priorBlock)  : null;
-        const delta = (recentAvg != null && priorAvg != null) ? (recentAvg - priorAvg) : null;
-        const fmt = (v) => (activeMetric === 'rpe' || activeMetric === 'weight') ? Number(v).toFixed(1) : Math.round(v);
-        const deltaColor = (delta == null || delta === 0) ? '#8a5a3a'
-          : cfg.better === 'neutral' ? '#e87a3c'
-          : ((cfg.better === 'up' && delta > 0) || (cfg.better === 'down' && delta < 0)) ? '#4caf50' : '#e8743c';
+        const tabs = [];
+        if (hasPerformance) tabs.push({ id: 'performance', label: 'Rendimiento' });
+        if (hasWeight) tabs.push({ id: 'weight', label: 'Peso' });
 
-        const tabs = METRICS.filter(m => hasSeries(m.id));
         const stats = data.stats || {};
 
         return (
           <>
             {tabs.length > 1 && (
-              <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto' }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 {tabs.map(m => (
-                  <button key={m.id} onClick={() => setActiveMetric(m.id)} style={{ flex: '1 0 auto', padding: '8px 12px', borderRadius: 10, border: 'none', whiteSpace: 'nowrap', background: activeMetric === m.id ? 'rgba(212,80,26,0.2)' : '#2a160c', color: activeMetric === m.id ? '#d4501a' : '#8a5a3a', fontSize: 13, fontWeight: 700, cursor: 'pointer', borderBottom: activeMetric === m.id ? '2px solid #d4501a' : '2px solid transparent' }}>
+                  <button key={m.id} onClick={() => setActiveMetric(m.id)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', background: activeMetric === m.id ? 'rgba(212,80,26,0.2)' : '#2a160c', color: activeMetric === m.id ? '#d4501a' : '#8a5a3a', fontSize: 13, fontWeight: 700, cursor: 'pointer', borderBottom: activeMetric === m.id ? '2px solid #d4501a' : '2px solid transparent' }}>
                     {m.label}
                   </button>
                 ))}
@@ -1963,48 +1860,33 @@ export const ProgressScreen = () => {
             )}
 
             <div style={{ background: '#2a160c', borderRadius: 16, padding: 16, marginBottom: 16 }}>
-              {/* Valor actual + delta semana vs semana */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-                <div>
-                  <span style={{ fontSize: 28, fontWeight: 900, color: cfg.color }}>{lastVal != null ? fmt(lastVal) : '--'}</span>
-                  {cfg.unit && <span style={{ fontSize: 13, color: '#8a5a3a', marginLeft: 3 }}>{cfg.unit}</span>}
-                </div>
-                {delta != null ? (
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: deltaColor }}>
-                      {delta > 0 ? '▲' : delta < 0 ? '▼' : '='} {fmt(Math.abs(delta))}{cfg.unit}
+              <div style={{ display: 'flex', alignItems: 'flex-end', height: 100, gap: 4 }}>
+                {metricData.map((val, i) => {
+                  const isNull = val == null || Number.isNaN(val);
+                  const pct = isNull || mx === mn ? 0 : (val - mn) / (mx - mn + 0.01);
+                  const h = isNull ? 6 : 20 + pct * 70;
+                  const isLast = i === lastIdx;
+                  return (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <div style={{ fontSize: 9, color: isLast && !isNull ? '#d4501a' : 'transparent', fontWeight: 700 }}>{isNull ? '' : `${val}${activeMetric === 'weight' ? 'kg' : '%'}`}</div>
+                      <div style={{ width: '100%', height: h, background: isNull ? 'rgba(90,58,34,0.25)' : (isLast ? 'linear-gradient(180deg, #d4501a, #8a2a0a)' : '#2a1808'), borderRadius: '4px 4px 0 0', transition: 'height 0.6s ease' }} />
+                      <div style={{ fontSize: 9, color: '#5a3a22' }}>{weeks[i] || ''}</div>
                     </div>
-                    <div style={{ fontSize: 9, color: '#5a3a22', fontWeight: 600 }}>media 4 sem. vs 4 previas</div>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 11, color: '#5a3a22', fontWeight: 600 }}>sin datos suficientes</div>
-                )}
+                  );
+                })}
               </div>
-
-              {/* Gráfico con eje (escala explícita para no engañar) */}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: 100, fontSize: 9, color: '#5a3a22', textAlign: 'right', minWidth: 26 }}>
-                  <span>{fmt(axisMax)}{cfg.unit}</span>
-                  <span>{fmt(axisMin)}{cfg.unit}</span>
+              {(canSummarize || improved) && (
+                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
+                  {canSummarize && (
+                    <div style={{ fontSize: 11, color: '#8a5a3a' }}>
+                      {activeMetric === 'weight'
+                        ? `↓ ${Math.abs(firstVal - lastVal).toFixed(1)} kg`
+                        : `↑ ${(lastVal - firstVal)}% de mejora`}
+                    </div>
+                  )}
+                  {improved && <div style={{ fontSize: 11, color: '#4caf50', fontWeight: 700 }}>↑ Progresando</div>}
                 </div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', height: 100, gap: 4 }}>
-                  {metricData.map((val, i) => {
-                    const isNull = val == null || Number.isNaN(val);
-                    const frac = isNull ? 0 : Math.max(0, Math.min(1, (val - axisMin) / span));
-                    const h = isNull ? 4 : 6 + frac * 88;
-                    const isLast = i === lastIdx;
-                    return (
-                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                        <div style={{ width: '100%', height: h, background: isNull ? 'rgba(90,58,34,0.25)' : (isLast ? `linear-gradient(180deg, ${cfg.color}, #8a2a0a)` : '#3a2410'), borderRadius: '4px 4px 0 0', transition: 'height 0.6s ease' }} />
-                        <div style={{ fontSize: 9, color: '#5a3a22' }}>{weeks[i] || ''}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div style={{ marginTop: 10, fontSize: 10, color: '#5a3a22', textAlign: 'center' }}>
-                {cfg.caption}{activeMetric === 'weight' ? ` · escala ${fmt(axisMin)}–${fmt(axisMax)} kg` : ''}
-              </div>
+              )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
