@@ -122,6 +122,34 @@ router.get('/', async (req, res) => {
   }
   const performanceData = anyPlanned ? perfByWeek : [];
 
+  // ---- loadData: carga de entrenamiento semanal = Σ(duration_min × rpe) de sesiones cumplidas ----
+  // ---- rpeData: RPE promedio semanal de sesiones cumplidas (señal de sobreentrenamiento) ----
+  const loadByWeek = new Array(8).fill(0);
+  const loadCount  = new Array(8).fill(0);
+  const rpeSum     = new Array(8).fill(0);
+  const rpeCount   = new Array(8).fill(0);
+  let anyLoad = false;
+  let anyRpe  = false;
+  for (const s of sessRows) {
+    if (s.done !== true) continue;
+    const idx = weekIndexOf(s.date);
+    if (idx < 0) continue;
+    const hasRpe = s.rpe !== null && s.rpe !== undefined && !Number.isNaN(Number(s.rpe));
+    const hasDur = s.duration_min !== null && s.duration_min !== undefined && !Number.isNaN(Number(s.duration_min));
+    if (hasRpe) {
+      rpeSum[idx] += Number(s.rpe);
+      rpeCount[idx] += 1;
+      anyRpe = true;
+      if (hasDur) {
+        loadByWeek[idx] += Number(s.duration_min) * Number(s.rpe);
+        loadCount[idx] += 1;
+        anyLoad = true;
+      }
+    }
+  }
+  const loadData = anyLoad ? loadByWeek.map((v, i) => (loadCount[i] > 0 ? Math.round(v) : null)) : [];
+  const rpeData  = anyRpe  ? rpeSum.map((v, i) => (rpeCount[i] > 0 ? Math.round((v / rpeCount[i]) * 10) / 10 : null)) : [];
+
   // ---- stats.sessions: sesiones done=true en la ventana ----
   const statsSessions = sessRows.filter((s) => s.done === true).length;
 
@@ -153,6 +181,8 @@ router.get('/', async (req, res) => {
     weeks,
     weightData,
     performanceData,
+    loadData,
+    rpeData,
     stats: {
       sessions: statsSessions,
       tournaments: statsTournaments,
