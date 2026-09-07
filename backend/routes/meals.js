@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const supabase   = require('../middleware/supabase');
 const requireAuth = require('../middleware/auth');
+const { today, nowTime } = require('../lib/appDate');
 
 const router = Router();
 router.use(requireAuth);
@@ -22,13 +23,13 @@ router.get('/', async (req, res) => {
 // GET /api/meals/today
 router.get('/today', async (req, res) => {
   if (!dbCheck(res)) return;
-  const today = new Date().toISOString().slice(0, 10);
+  const todayStr = today();
 
   const { data, error } = await supabase
     .from('meals')
     .select('*')
     .eq('user_id', req.userId)
-    .eq('date', today)
+    .eq('date', todayStr)
     .order('created_at', { ascending: true });
 
   if (error) return res.status(500).json({ error: error.message });
@@ -44,15 +45,15 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'name and items are required' });
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const todayStr = today();
 
   const { data, error } = await supabase
     .from('meals')
     .insert({
       user_id: req.userId,
-      date: today,
+      date: todayStr,
       name,
-      time: time || new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }),
+      time: time || nowTime(),
       items,
       cal:         cal         ?? 0,
       protein:     protein     ?? 0,

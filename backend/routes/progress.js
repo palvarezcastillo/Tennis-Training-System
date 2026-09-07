@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const supabase   = require('../middleware/supabase');
 const requireAuth = require('../middleware/auth');
+const { today, addDays, mondayOf } = require('../lib/appDate');
 
 const router = Router();
 router.use(requireAuth);
@@ -12,35 +13,17 @@ const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Datab
 router.get('/', async (req, res) => {
   if (!dbCheck(res)) return;
 
-  const localDate = (d) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
-  // Lunes de la semana actual
-  const today = new Date();
-  const dow = today.getDay();
-  const mondayShift = dow === 0 ? -6 : 1 - dow;
-  const thisMonday = new Date(today);
-  thisMonday.setDate(today.getDate() + mondayShift);
+  // Todas las fechas en el calendario del usuario, no en el del servidor.
+  const todayStr = today();
 
   // Inicio de ventana = lunes de 7 semanas atrás respecto al lunes de esta semana
-  const startMonday = new Date(thisMonday);
-  startMonday.setDate(thisMonday.getDate() - 7 * 7);
-
-  const todayStr = localDate(today);
-  const startStr = localDate(startMonday);
+  const startStr = addDays(mondayOf(todayStr), -7 * 7);
 
   // Límites (inclusive inicio, exclusivo fin) de cada una de las 8 semanas
   const weekBounds = [];
   for (let i = 0; i < 8; i++) {
-    const wStart = new Date(startMonday);
-    wStart.setDate(startMonday.getDate() + i * 7);
-    const wEnd = new Date(wStart);
-    wEnd.setDate(wStart.getDate() + 7); // exclusivo
-    weekBounds.push({ start: localDate(wStart), end: localDate(wEnd) });
+    const wStart = addDays(startStr, i * 7);
+    weekBounds.push({ start: wStart, end: addDays(wStart, 7) }); // end exclusivo
   }
 
   const weeks = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'];
@@ -162,16 +145,15 @@ router.get('/', async (req, res) => {
   );
   let streak = 0;
   {
-    const cursor = new Date(today);
-    const todayHas = doneDates.has(localDate(cursor));
-    if (!todayHas) {
+    let cursor = todayStr;
+    if (!doneDates.has(cursor)) {
       // permitir que la racha empiece ayer si hoy no hay
-      cursor.setDate(cursor.getDate() - 1);
+      cursor = addDays(cursor, -1);
     }
     // si ni hoy ni ayer tienen, streak queda en 0
-    while (doneDates.has(localDate(cursor))) {
+    while (doneDates.has(cursor)) {
       streak += 1;
-      cursor.setDate(cursor.getDate() - 1);
+      cursor = addDays(cursor, -1);
     }
   }
 

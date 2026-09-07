@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const supabase   = require('../middleware/supabase');
 const requireAuth = require('../middleware/auth');
+const { today } = require('../lib/appDate');
 
 const router = Router();
 router.use(requireAuth);
@@ -10,13 +11,13 @@ const dbCheck = (res) => { if (!supabase) { res.status(503).json({ error: 'Datab
 // GET /api/metrics/today
 router.get('/today', async (req, res) => {
   if (!dbCheck(res)) return;
-  const today = new Date().toISOString().slice(0, 10);
+  const todayStr = today();
 
   const { data, error } = await supabase
     .from('daily_metrics')
     .select('*')
     .eq('user_id', req.userId)
-    .eq('date', today)
+    .eq('date', todayStr)
     .maybeSingle();
 
   if (error) return res.status(500).json({ error: error.message });
@@ -26,14 +27,14 @@ router.get('/today', async (req, res) => {
 // PUT /api/metrics/today
 router.put('/today', async (req, res) => {
   if (!dbCheck(res)) return;
-  const today = new Date().toISOString().slice(0, 10);
-  const updates = { ...req.body, date: today, user_id: req.userId };
+  const todayStr = today();
+  const updates = { ...req.body, date: todayStr, user_id: req.userId };
 
   const { data: existing } = await supabase
     .from('daily_metrics')
     .select('id')
     .eq('user_id', req.userId)
-    .eq('date', today)
+    .eq('date', todayStr)
     .maybeSingle();
 
   let result;

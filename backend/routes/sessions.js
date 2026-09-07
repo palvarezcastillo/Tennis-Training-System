@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const supabase   = require('../middleware/supabase');
 const requireAuth = require('../middleware/auth');
+const { today, addDays, mondayOf } = require('../lib/appDate');
 
 const router = Router();
 router.use(requireAuth);
@@ -24,23 +25,9 @@ router.get('/week', async (req, res) => {
   if (!dbCheck(res)) return;
   const offset = parseInt(req.query.offset || '0', 10);
 
-  const localDate = (d) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
-  const today = new Date();
-  const dow = today.getDay();
-  const mondayShift = dow === 0 ? -6 : 1 - dow;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + mondayShift + offset * 7);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-
-  const monStr = localDate(monday);
-  const sunStr = localDate(sunday);
+  // Semana lunes-domingo en el calendario del usuario, no en el del servidor.
+  const monStr = mondayOf(today(), offset);
+  const sunStr = addDays(monStr, 6);
 
   const { data, error } = await supabase
     .from('sessions')
